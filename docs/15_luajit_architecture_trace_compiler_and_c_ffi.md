@@ -1,13 +1,14 @@
 # Module 15: LuaJIT Architecture, Trace Compiler Internals & C FFI Engine
 
-**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem  
-**Category:** LuaJIT 2.1 Microarchitecture, Tracing JIT, SSA IR, NYI Aborts & C FFI  
-**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`  
+**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem
+**Category:** LuaJIT 2.1 Microarchitecture, Tracing JIT, SSA IR, NYI Aborts & C FFI
+**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`
 **Status:** ✅ Completed
 
 ---
 
 ## 📑 Table of Contents
+
 1. [High-Level Overview & Executive Summary](#1-high-level-overview--executive-summary)
 2. [LuaJIT Microarchitecture: Handwritten Assembly VM & NaN-Boxing](#2-luajit-microarchitecture-handwritten-assembly-vm--nan-boxing)
 3. [The Tracing JIT Compiler Pipeline & SSA Intermediate Representation](#3-the-tracing-jit-compiler-pipeline--ssa-intermediate-representation)
@@ -17,14 +18,12 @@
 7. [Certification & Engineering Essentials (Lua / OpenResty Cheat Sheet)](#7-certification--engineering-essentials-lua--openresty-cheat-sheet)
 8. [Comparative Analysis Matrix: Standard C API vs LuaJIT C FFI](#8-comparative-analysis-matrix-standard-c-api-vs-luajit-c-ffi)
 9. [Performance & Hardware Resource Optimization](#9-performance--hardware-resource-optimization)
-10. [In-Depth Engineering Perspectives](#10-in-depth-engineering-perspectives)
-11. [Well-Architected Systems Programming Principles](#11-well-architected-systems-programming-principles)
-12. [Step-by-Step Production Lab: Zero-Copy Binary Wire Protocol Parser in C FFI](#12-step-by-step-production-lab-zero-copy-binary-wire-protocol-parser-in-c-ffi)
-13. [Pure CLI / Command Interface](#13-pure-cli--command-interface)
-14. [Advanced Architecture & Edge-Case Failure Modes](#14-advanced-architecture--edge-case-failure-modes)
-15. [Detailed Sub-Components & Subsystems](#15-detailed-sub-components--subsystems)
-16. [References (The 5+5 Rule)](#16-references-the-55-rule)
-17. [Universal FinOps & Hardware Cost Governance](#17-universal-finops--hardware-cost-governance)
+10. [Step-by-Step Production Lab: Zero-Copy Binary Wire Protocol Parser in C FFI](#10-step-by-step-production-lab-zero-copy-binary-wire-protocol-parser-in-c-ffi)
+11. [Pure CLI / Command Interface](#11-pure-cli--command-interface)
+12. [Advanced Architecture & Edge-Case Failure Modes](#12-advanced-architecture--edge-case-failure-modes)
+13. [Detailed Sub-Components & Subsystems](#13-detailed-sub-components--subsystems)
+14. [References (The 5+5 Rule)](#14-references-the-55-rule)
+15. [Universal FinOps & Hardware Cost Governance](#15-universal-finops--hardware-cost-governance)
 
 ---
 
@@ -36,7 +35,7 @@ The crowning achievement of LuaJIT is the **C FFI (Foreign Function Interface)**
 
 In enterprise cloud backbones—powering Cloudflare's global edge proxy fleet, Kong API Gateway, and OpenResty—LuaJIT delivers near-C silicon execution speed with the agile scripting velocity of Lua.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               LUAJIT TRACING JIT & C FFI COMPILATION PIPELINE                  │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -62,6 +61,7 @@ In enterprise cloud backbones—powering Cloudflare's global edge proxy fleet, K
 ```
 
 ### 👔 Executive Summary (For Managers & Non-Technical Stakeholders)
+
 * **Business Purpose**: Delivers the blistering performance of compiled C software with the rapid development agility of a scripting language, slashing cloud compute costs.
 * **How It Works**: Uses an intelligent compiler that watches application execution in real-time, identifying repetitive calculation loops and instantly converting them into native hardware machine code.
 * **Key Business Value & ROI**: Slashes enterprise cloud server compute spend by up to 80%, enables a single server to handle millions of requests per second, and eliminates the need for large backend server fleets.
@@ -71,9 +71,11 @@ In enterprise cloud backbones—powering Cloudflare's global edge proxy fleet, K
 ## 2. LuaJIT Microarchitecture: Handwritten Assembly VM & NaN-Boxing
 
 ### 2.1 Handwritten Assembly Interpreter
+
 While standard PUC-Rio Lua is written in portable ANSI C, LuaJIT's interpreter core is handwritten directly in native CPU assembly (`vm_x86.dasc`, `vm_arm64.dasc`). This ensures zero register spilling, optimized branch prediction layouts, and single-cycle instruction dispatches.
 
 ### 2.2 NaN-Boxing Value Representation
+
 LuaJIT encodes all Lua values (booleans, strings, pointers, integers) inside a single **64-bit IEEE-754 Floating-Point NaN (Not-a-Number)** bit pattern. Every value occupies exactly 8 bytes and fits inside a single 64-bit CPU hardware register, slashing memory bandwidth requirements by 50%.
 
 ---
@@ -84,7 +86,7 @@ Unlike traditional method JITs (Java HotSpot, V8) that compile entire functions 
 
 $$\text{Optimization Pipeline: } \text{Bytecode} \longrightarrow \text{Linear IR} \longrightarrow \text{SSA Optimization} \longrightarrow \text{Machine Code}$$
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     CORE LUAJIT SSA OPTIMIZATION PASSES                        │
 ├───────────────────┬────────────────────────────────────────────────────────────┤
@@ -107,7 +109,7 @@ $$\text{Optimization Pipeline: } \text{Bytecode} \longrightarrow \text{Linear IR
 
 When LuaJIT encounters a language construct that the JIT compiler cannot trace, it triggers an **NYI (Not Yet Implemented) Trace Abort**, discarding the compiled machine code and falling back to the slower assembly interpreter.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     LUAJIT NYI TRACE ABORT TAXONOMY                            │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -167,7 +169,8 @@ When native C memory is allocated via `malloc()` through FFI, attach an automate
 local ptr = ffi.gc(ffi.C.malloc(1024), ffi.C.free) -- Automatically freed on GC!
 ```
 
-### Allocation Sinking:
+### Allocation Sinking
+
 In hot loops, creating temporary FFI structs (`local pt = ffi.new("Point", x, y)`) triggers LuaJIT's Allocation Sinking engine. The struct is never allocated on the heap—its fields are kept entirely inside **CPU hardware registers (`%rax`, `%rbx`)**, running at bare-metal speed with **zero garbage collection overhead!**
 
 ---
@@ -185,16 +188,16 @@ In hot loops, creating temporary FFI structs (`local pt = ffi.new("Point", x, y)
 
 | Dimension | Standard C API (`lua_CFunction`) | LuaJIT C FFI (`ffi.cdef`) |
 | :--- | :--- | :--- |
-| **Call Latency** | ~5-10 Nanoseconds (Stack Push/Pop)| **Sub-Nanosecond (< 1ns Direct JIT Call)**|
-| **JIT Inlining** | ❌ **Aborts JIT Traces (NYI)** | ✅ **100% Inlined into Machine Code**|
+| **Call Latency** | ~5-10 Nanoseconds (Stack Push/Pop) | **Sub-Nanosecond (< 1ns Direct JIT Call)** |
+| **JIT Inlining** | ❌ **Aborts JIT Traces (NYI)** | ✅ **100% Inlined into Machine Code** |
 | **Memory Access** | Requires table/userdata wrappers | **Direct Raw C Struct Pointer Access** |
-| **Memory Allocation**| Allocates on Lua GC Heap | **Allocation Sinking to CPU Registers**|
+| **Memory Allocation** | Allocates on Lua GC Heap | **Allocation Sinking to CPU Registers** |
 
 ---
 
 ## 9. Performance & Hardware Resource Optimization
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        LUAJIT TUNING PLAYBOOK                                  │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -210,8 +213,9 @@ In hot loops, creating temporary FFI structs (`local pt = ffi.new("Point", x, y)
 
 ## 10. Step-by-Step Production Lab: Zero-Copy Binary Wire Protocol Parser in C FFI
 
-### File Structure:
-- [`src/ffi_protocol_parser.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/ffi_protocol_parser.lua)
+### File Structure
+
+* [`src/ffi_protocol_parser.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/ffi_protocol_parser.lua)
 
 ### Step 1: Implement Zero-Copy Network Protocol Parser with LuaJIT FFI
 
@@ -301,20 +305,26 @@ print("Zero-Copy FFI Wire Protocol Verification Succeeded!")
 ## 11. Pure CLI / Command Interface
 
 ### 1. Execute Protocol Parser Under LuaJIT
+
 Run high-performance FFI parser:
+
 ```bash
 luajit src/ffi_protocol_parser.lua 2>/dev/null || \
 lua src/ffi_protocol_parser.lua 2>/dev/null || true
 ```
 
 ### 2. Inspect JIT Trace Compilation with -jv
+
 Verify that loop is 100% compiled to native machine code without NYI aborts:
+
 ```bash
 luajit -jv src/ffi_protocol_parser.lua 2>/dev/null || true
 ```
 
 ### 3. Dump Disassembled Machine Code with -jdump
+
 Inspect emitted x86_64 / ARM64 assembly opcodes:
+
 ```bash
 luajit -jdump=m src/ffi_protocol_parser.lua 2>/dev/null | head -n 30 || true
 ```
@@ -323,7 +333,7 @@ luajit -jdump=m src/ffi_protocol_parser.lua 2>/dev/null | head -n 30 || true
 
 ## 12. Advanced Architecture & Edge-Case Failure Modes
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                       LUAJIT FAILURE RECOVERY MATRIX                           │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -348,29 +358,37 @@ luajit -jdump=m src/ffi_protocol_parser.lua 2>/dev/null | head -n 30 || true
 ## 13. Detailed Sub-Components & Subsystems
 
 ### 1. LuaJIT Trace Recorder Subsystem (`lj_record.c`)
+
 * **Key Concepts**: Records linear bytecode paths and unrolls inner loops into Static Single Assignment (SSA) IR instructions.
 * **CLI / Tool Snippet**:
+
 ```bash
 luajit -jdump=r -e 'for i=1,100 do end' 2>/dev/null || true
 ```
 
 ### 2. C FFI Parser Engine (`lj_cparse.c`)
+
 * **Key Concepts**: Built-in ANSI C header parser constructing binary struct layouts and symbol tables directly in memory.
 * **CLI / Tool Snippet**:
+
 ```bash
 luajit -e 'local ffi = require("ffi"); ffi.cdef[[ struct Test { int a; }; ]]; print(ffi.sizeof("struct Test"))' 2>/dev/null || true
 ```
 
 ### 3. Machine Code Generation Engine (`lj_mcode.c`)
+
 * **Key Concepts**: JIT backend allocating executable memory pages (`mprotect PROT_EXEC`) and emitting native CPU opcodes.
 * **CLI / Tool Snippet**:
+
 ```bash
 luajit -v 2>/dev/null || true
 ```
 
 ### 4. Allocation Sinking Optimizer (`lj_opt_sink.c`)
+
 * **Key Concepts**: Proves that temporary CData structs do not escape loop context, keeping values in hardware CPU registers.
 * **CLI / Tool Snippet**:
+
 ```bash
 luajit -jdump=i -e 'local ffi=require("ffi"); for i=1,1000 do local p=ffi.new("int[1]", i) end' 2>/dev/null || true
 ```
@@ -380,6 +398,7 @@ luajit -jdump=i -e 'local ffi=require("ffi"); for i=1,1000 do local p=ffi.new("i
 ## 14. References (The 5+5 Rule)
 
 ### Official Documentation & Academic Specifications
+
 1. [LuaJIT Official Architectural Documentation (Mike Pall)](https://luajit.org/luajit.html)
 2. [LuaJIT Foreign Function Interface (FFI) Specification](https://luajit.org/ext_ffi.html)
 3. [LuaJIT NYI (Not Yet Implemented in JIT Compiler)](https://wiki.luajit.org/NYI)
@@ -387,17 +406,18 @@ luajit -jdump=i -e 'local ffi=require("ffi"); for i=1,1000 do local p=ffi.new("i
 5. [OpenResty LuaJIT Performance Tuning Manual](https://openresty.org/)
 
 ### Authoritative Engineering Textbooks & Systems Deep Dives
-6. [Mike Pall: Allocation Sinking and Store Sinking in LuaJIT (LuaJIT Mailing List)](http://lua-users.org/lists/lua-l/)
-7. [Cloudflare Engineering: Why We Use LuaJIT to Power Cloudflare's Edge Proxy Fleet](https://blog.cloudflare.com/)
-8. [Eli Bendersky: LuaJIT FFI Performance and Low-Level C Interoperability](https://eli.thegreenplace.net/)
-9. [Datadog Engineering: Continuous CPU Profiling of LuaJIT Applications](https://www.datadoghq.com/blog/)
-10. [High-Performance Linux Systems: Zero-Overhead FFI vs Virtual Stack Marshaling](https://www.kernel.org/)
+
+1. [Mike Pall: Allocation Sinking and Store Sinking in LuaJIT (LuaJIT Mailing List)](http://lua-users.org/lists/lua-l/)
+2. [Cloudflare Engineering: Why We Use LuaJIT to Power Cloudflare's Edge Proxy Fleet](https://blog.cloudflare.com/)
+3. [Eli Bendersky: LuaJIT FFI Performance and Low-Level C Interoperability](https://eli.thegreenplace.net/)
+4. [Datadog Engineering: Continuous CPU Profiling of LuaJIT Applications](https://www.datadoghq.com/blog/)
+5. [High-Performance Linux Systems: Zero-Overhead FFI vs Virtual Stack Marshaling](https://www.kernel.org/)
 
 ---
 
 ## 15. Universal FinOps & Hardware Cost Governance
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        LUAJIT FINOPS SAVINGS MATRIX                            │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -418,12 +438,15 @@ luajit -jdump=i -e 'local ffi=require("ffi"); for i=1,1000 do local p=ffi.new("i
 ```
 
 ### 1. LuaJIT FFI vs Standard JSON Wire Parsing Economics
+
 In an API gateway parsing 100,000,000 requests daily:
-- **Standard JSON String Parsing**: Parses strings and allocates thousands of intermediate tables per request ($25\text{ large cloud servers required} \times \$620/\text{month} = \mathbf{\$15,500/\text{month}}$).
-- **Zero-Copy Binary Wire FFI (`PacketHeader*`)**: Reads binary network buffers directly via memory casts with **zero heap allocations and sub-nanosecond access**.
-- Required server fleet drops from 25 to **4 standard cloud servers** ($4 \times \$150 = \mathbf{\$600/\text{month}}$).
-- **FinOps ROI**: Delivers **\$14,900/month (\$178,800/year) in direct compute infrastructure savings**.
+
+* **Standard JSON String Parsing**: Parses strings and allocates thousands of intermediate tables per request ($25\text{ large cloud servers required} \times \$620/\text{month} = \mathbf{\$15,500/\text{month}}$).
+* **Zero-Copy Binary Wire FFI (`PacketHeader*`)**: Reads binary network buffers directly via memory casts with **zero heap allocations and sub-nanosecond access**.
+* Required server fleet drops from 25 to **4 standard cloud servers** ($4 \times \$150 = \mathbf{\$600/\text{month}}$).
+* **FinOps ROI**: Delivers **\$14,900/month (\$178,800/year) in direct compute infrastructure savings**.
 
 ### 2. Allocation Sinking Hardware Efficiency
-- Temporary CData allocations inside FFI loops are sunk into CPU hardware registers (`%rax`, `%rcx`), eliminating billions of short-lived Garbage Collector allocations.
-- **FinOps ROI**: Eliminates Stop-the-World GC pauses, guaranteeing 99.99th percentile response latencies under 200 microseconds.
+
+* Temporary CData allocations inside FFI loops are sunk into CPU hardware registers (`%rax`, `%rcx`), eliminating billions of short-lived Garbage Collector allocations.
+* **FinOps ROI**: Eliminates Stop-the-World GC pauses, guaranteeing 99.99th percentile response latencies under 200 microseconds.

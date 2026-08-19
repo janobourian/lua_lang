@@ -1,13 +1,14 @@
 # Module 01: Lua Numbers, 64-Bit Integers, IEEE-754 Floats & Math Architecture
 
-**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem  
-**Category:** Numeric Subtypes, Integer Arithmetic, Bitwise Operations & Math Library  
-**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`  
+**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem
+**Category:** Numeric Subtypes, Integer Arithmetic, Bitwise Operations & Math Library
+**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`
 **Status:** ✅ Completed
 
 ---
 
 ## 📑 Table of Contents
+
 1. [High-Level Overview & Executive Summary](#1-high-level-overview--executive-summary)
 2. [Dual Numeric Representation: Integers vs Floating-Point (Lua 5.3+)](#2-dual-numeric-representation-integers-vs-floating-point-lua-53)
 3. [Integer Limits, Two's Complement Wraparound & Coercion](#3-integer-limits-twos-complement-wraparound--coercion)
@@ -17,14 +18,12 @@
 7. [Certification & Engineering Essentials (Lua / OpenResty Cheat Sheet)](#7-certification--engineering-essentials-lua--openresty-cheat-sheet)
 8. [Comparative Analysis Matrix: Numeric Architectures across Lua Versions](#8-comparative-analysis-matrix-numeric-architectures-across-lua-versions)
 9. [Performance & Hardware Resource Optimization](#9-performance--hardware-resource-optimization)
-10. [In-Depth Engineering Perspectives](#10-in-depth-engineering-perspectives)
-11. [Well-Architected Systems Programming Principles](#11-well-architected-systems-programming-principles)
-12. [Step-by-Step Production Lab: Enterprise Fixed-Point Financial Ledger Engine](#12-step-by-step-production-lab-enterprise-fixed-point-financial-ledger-engine)
-13. [Pure CLI / Command Interface](#13-pure-cli--command-interface)
-14. [Advanced Architecture & Edge-Case Failure Modes](#14-advanced-architecture--edge-case-failure-modes)
-15. [Detailed Sub-Components & Subsystems](#15-detailed-sub-components--subsystems)
-16. [References (The 5+5 Rule)](#16-references-the-55-rule)
-17. [Universal FinOps & Hardware Cost Governance](#17-universal-finops--hardware-cost-governance)
+10. [Step-by-Step Production Lab: Enterprise Fixed-Point Financial Ledger Engine](#10-step-by-step-production-lab-enterprise-fixed-point-financial-ledger-engine)
+11. [Pure CLI / Command Interface](#11-pure-cli--command-interface)
+12. [Advanced Architecture & Edge-Case Failure Modes](#12-advanced-architecture--edge-case-failure-modes)
+13. [Detailed Sub-Components & Subsystems](#13-detailed-sub-components--subsystems)
+14. [References (The 5+5 Rule)](#14-references-the-55-rule)
+15. [Universal FinOps & Hardware Cost Governance](#15-universal-finops--hardware-cost-governance)
 
 ---
 
@@ -33,12 +32,13 @@
 Historically in Lua 5.1 and LuaJIT 2.1, all numbers were uniformly represented as **64-bit IEEE-754 Double Precision Floating-Point** values. While doubles can represent exact integers up to $2^{53} = 9,007,199,254,740,992$, they cannot natively handle 64-bit pointers, file offsets, or cryptographic hashes without precision loss.
 
 Starting in **Lua 5.3 and refined in Lua 5.4**, the language introduced a formal **Dual Numeric Subtype Architecture**:
+
 1. **`integer`**: A 64-bit signed Two's Complement integer ($[-2^{63}, 2^{63}-1]$).
 2. **`float`**: A 64-bit IEEE-754 double-precision floating-point number.
 
 Understanding numeric coercion rules, integer division (`//`), native bitwise operations (`&`, `|`, `~`, `>>`, `<<`), and the modern **xoshiro256\*\* Pseudo-Random Number Generator** in `<math>` is essential for developing high-throughput financial ledgers, cryptographic token systems, and network packet encoders.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               LUA DUAL NUMERIC ARCHITECTURE & CONVERSION FLOW                  │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -64,6 +64,7 @@ Understanding numeric coercion rules, integer division (`//`), native bitwise op
 ```
 
 ### 👔 Executive Summary (For Managers & Non-Technical Stakeholders)
+
 * **Business Purpose**: Ensures 100% mathematical precision for billing systems, financial transactions, user counters, and cryptographic tokens without rounding errors.
 * **How It Works**: Uses dedicated 64-bit integer processing for currency and counts, switching to high-speed floating-point mathematics only for statistical analytics and geometry.
 * **Key Business Value & ROI**: Eliminates fractional cent accounting discrepancies, prevents financial audit failures, and delivers multi-million calculation per second throughput on cloud nodes.
@@ -80,7 +81,7 @@ print(math.type(42.0))  --> "float"
 print(math.type(42 + 0.0)) --> "float" (Float Contagion Rule)
 ```
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     NUMERIC SUBTYPE OPERATOR RULES                             │
 ├───────────────────┬───────────────────┬────────────────────────────────────────┤
@@ -103,18 +104,23 @@ print(math.type(42 + 0.0)) --> "float" (Float Contagion Rule)
 ## 3. Integer Limits, Two's Complement Wraparound & Coercion
 
 ### 3.1 Numeric Boundary Constants
+
 * `math.maxinteger` $= 2^{63} - 1 = \mathbf{9,223,372,036,854,775,807}$
 * `math.mininteger` $= -2^{63} = \mathbf{-9,223,372,036,854,775,808}$
 
-### 3.2 Two's Complement Overflow Invariant:
+### 3.2 Two's Complement Overflow Invariant
+
 In Lua 5.3+, integer arithmetic **wraps around silently** upon exceeding bounds:
+
 ```lua
 local max = math.maxinteger
 print(max + 1 == math.mininteger) --> true (Wraparound to minimum integer!)
 ```
 
 ### 3.3 Safe Integer Conversion with `math.tointeger()`
+
 `math.tointeger(x)` converts a float or string to an integer **only if it has an exact integer representation**, returning `nil` on failure:
+
 ```lua
 print(math.tointeger(100.0)) --> 100
 print(math.tointeger(100.5)) --> nil (Fractional part rejected safely!)
@@ -124,7 +130,7 @@ print(math.tointeger(100.5)) --> nil (Fractional part rejected safely!)
 
 ## 4. Bitwise Operators (Native 5.3+ vs LuaJIT bit Library)
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     LUA BITWISE OPERATOR SPECIFICATION                         │
 ├───────────────────┬───────────────────┬────────────────────────────────────────┤
@@ -149,26 +155,32 @@ print(math.tointeger(100.5)) --> nil (Fractional part rejected safely!)
 ## 5. The Standard math Library & PRNG Algorithms
 
 ### 5.1 Core Mathematical Primitives
-- **Trigonometry**: `math.sin`, `math.cos`, `math.tan`, `math.atan` (Takes $y, x$ in Lua 5.3+; replaces deprecated `atan2`).
-- **Rounding**: `math.floor` (round toward $-\infty$), `math.ceil` (round toward $+\infty$), `math.modf` (separates integer & fraction).
-- **Constants**: `math.pi` ($\approx 3.141592653589793$), `math.huge` ($+\infty$).
+
+* **Trigonometry**: `math.sin`, `math.cos`, `math.tan`, `math.atan` (Takes $y, x$ in Lua 5.3+; replaces deprecated `atan2`).
+* **Rounding**: `math.floor` (round toward $-\infty$), `math.ceil` (round toward $+\infty$), `math.modf` (separates integer & fraction).
+* **Constants**: `math.pi` ($\approx 3.141592653589793$), `math.huge` ($+\infty$).
 
 ### 5.2 The xoshiro256** Pseudo-Random Number Generator (PRNG)
+
 In Lua 5.4, `math.random` was upgraded from legacy C library LCG to the cryptographically solid **xoshiro256\*\*** algorithm:
-- Initialized automatically at Lua startup with entropy from the OS kernel.
-- Explicit re-seeding via `math.randomseed(x, y)` takes two 64-bit integer seeds.
+
+* Initialized automatically at Lua startup with entropy from the OS kernel.
+* Explicit re-seeding via `math.randomseed(x, y)` takes two 64-bit integer seeds.
 
 ---
 
 ## 6. Financial Fixed-Point Arithmetic & Currency Safety
 
-### ⚠️ The Floating-Point Currency Trap:
+### ⚠️ The Floating-Point Currency Trap
+
 In IEEE-754 floating-point, binary representation cannot accurately represent decimal fractions like `0.1` or `0.01`:
+
 ```lua
 print(0.1 + 0.2 == 0.3) --> false (Evaluates to 0.30000000000000004!)
 ```
 
-### Production Invariant:
+### Production Invariant
+
 **Always store financial currency amounts as 64-bit integer cents** (e.g. $\$185.50 \to \mathbf{18550}$).
 
 ---
@@ -186,16 +198,16 @@ print(0.1 + 0.2 == 0.3) --> false (Evaluates to 0.30000000000000004!)
 
 | Dimension | Lua 5.1 | LuaJIT 2.1 | Lua 5.3 | Lua 5.4 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Numeric Model** | Double Only | Double (NaN-boxed) | Dual (Int64 / Double)| **Dual (Int64 / Double)**|
-| **Bitwise Support** | None (Third-party) | `bit` library (32-bit)| Native (`&`, `|`, `~`)| **Native (`&`, `|`, `~`)** |
-| **Integer Division**| None (Use `floor`) | None (Use `floor`) | Native (`//`) | **Native (`//`)** |
+| **Numeric Model** | Double Only | Double (NaN-boxed) | Dual (Int64 / Double) | **Dual (Int64 / Double)** |
+| **Bitwise Support** | None (Third-party) | `bit` library (32-bit) | Native (`&`, `\|`, `~`) | **Native (`&`, `\|`, `~`)** |
+| **Integer Division** | None (Use `floor`) | None (Use `floor`) | Native (`//`) | **Native (`//`)** |
 | **PRNG Engine** | C Libc `rand()` | C Libc `rand()` | C Libc | **xoshiro256\*\*** |
 
 ---
 
 ## 9. Performance & Hardware Resource Optimization
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                         NUMERIC TUNING PLAYBOOK                                │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -211,8 +223,9 @@ print(0.1 + 0.2 == 0.3) --> false (Evaluates to 0.30000000000000004!)
 
 ## 10. Step-by-Step Production Lab: Enterprise Fixed-Point Financial Ledger Engine
 
-### File Structure:
-- [`financial_ledger.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/financial_ledger.lua)
+### File Structure
+
+* [`financial_ledger.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/financial_ledger.lua)
 
 ### Step 1: Implement Fixed-Point Currency Ledger with Integer Math
 
@@ -308,19 +321,25 @@ print("Final Balance ACC-102: " .. ledger:format_balance("ACC-102"))
 ## 11. Pure CLI / Command Interface
 
 ### 1. Execute Financial Ledger Script
+
 Run ledger engine:
+
 ```bash
 lua src/financial_ledger.lua
 ```
 
 ### 2. Verify Integer Limits and Subtypes in Lua Interactive REPL
+
 Inspect 64-bit integer properties:
+
 ```bash
 lua -e 'print("Type:", math.type(100 // 3)); print("MaxInt:", math.maxinteger)'
 ```
 
 ### 3. Test Bitwise Shifting and Masking Operations
+
 Verify 64-bit bitwise behavior:
+
 ```bash
 lua -e 'local mask = (1 << 8) - 1; print(string.format("0x%02X", 0x1234 & mask))'
 ```
@@ -329,7 +348,7 @@ lua -e 'local mask = (1 << 8) - 1; print(string.format("0x%02X", 0x1234 & mask))
 
 ## 12. Advanced Architecture & Edge-Case Failure Modes
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                    NUMERIC FAILURE RECOVERY MATRIX                             │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -354,29 +373,37 @@ lua -e 'local mask = (1 << 8) - 1; print(string.format("0x%02X", 0x1234 & mask))
 ## 13. Detailed Sub-Components & Subsystems
 
 ### 1. Lua 5.4 xoshiro256** PRNG Generator
+
 * **Key Concepts**: All-purpose, non-cryptographic high-speed generator with period of $2^{256}-1$ passing BigCrush statistical tests.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'math.randomseed(os.time()); print(math.random(1000, 9999))'
 ```
 
 ### 2. Lua IEEE-754 NaN-Boxing Subsystem (LuaJIT)
+
 * **Key Concepts**: Encodes all Lua values inside 64-bit floating-point NaN bits, allowing values to fit entirely inside CPU registers without memory allocation.
 * **CLI / Tool Snippet**:
+
 ```bash
 luajit -v 2>/dev/null || true
 ```
 
 ### 3. Modulo Floor Algorithm Engine
+
 * **Key Concepts**: Computes mathematically rigorous modulo: `a - math.floor(a / b) * b` guaranteeing non-negative outputs for positive divisors.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'print(-7 % 3)'
 ```
 
 ### 4. Lua Bitwise ALU Emulation Layer
+
 * **Key Concepts**: Maps bitwise operators directly to CPU `and`, `or`, `xor`, `shl`, `shr` assembly opcodes.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'print(0xF0 ~ 0xFF)'
 ```
@@ -386,6 +413,7 @@ lua -e 'print(0xF0 ~ 0xFF)'
 ## 14. References (The 5+5 Rule)
 
 ### Official Documentation & Academic Specifications
+
 1. [Lua 5.4 Reference Manual: Section 6.7 Mathematical Functions](https://www.lua.org/manual/5.4/manual.html#6.7)
 2. [IEEE Standard for Floating-Point Arithmetic (IEEE 754-2019)](https://ieeexplore.ieee.org/document/8766229)
 3. [Roberto Ierusalimschy: Integers in Lua 5.3 (Journal of Computer Languages)](https://www.lua.org/doc/jucs05.pdf)
@@ -393,17 +421,18 @@ lua -e 'print(0xF0 ~ 0xFF)'
 5. [SEI CERT: Numerical Computation Rules in High-Reliability Software](https://wiki.sei.cmu.edu/)
 
 ### Authoritative Engineering Textbooks & Systems Deep Dives
-6. [Roberto Ierusalimschy: Programming in Lua (Chapter 3: Numbers)](https://www.lua.org/pil/3.html)
-7. [Eli Bendersky: Bitwise Operations and Number Representation in Lua](https://eli.thegreenplace.net/)
-8. [David Goldberg: What Every Computer Scientist Should Know About Floating-Point Arithmetic](https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html)
-9. [Cloudflare Engineering: Optimizing Number Crunching in Cloudflare Workers](https://blog.cloudflare.com/)
-10. [High-Performance Linux Systems: Fixed-Point Currency Calculation Engines](https://www.kernel.org/)
+
+1. [Roberto Ierusalimschy: Programming in Lua (Chapter 3: Numbers)](https://www.lua.org/pil/3.html)
+2. [Eli Bendersky: Bitwise Operations and Number Representation in Lua](https://eli.thegreenplace.net/)
+3. [David Goldberg: What Every Computer Scientist Should Know About Floating-Point Arithmetic](https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html)
+4. [Cloudflare Engineering: Optimizing Number Crunching in Cloudflare Workers](https://blog.cloudflare.com/)
+5. [High-Performance Linux Systems: Fixed-Point Currency Calculation Engines](https://www.kernel.org/)
 
 ---
 
 ## 15. Universal FinOps & Hardware Cost Governance
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                         NUMERIC FINOPS SAVINGS MATRIX                          │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -424,12 +453,15 @@ lua -e 'print(0xF0 ~ 0xFF)'
 ```
 
 ### 1. Fixed-Point Integer vs Floating-Point Accounting Economics
+
 In a multi-currency billing gateway processing 10,000,000 invoices monthly:
-- Using floating-point doubles causes fractional rounding errors averaging \$0.0003 per invoice ($10\text{M invoices} \times \$0.0003 = \mathbf{\$3,000/\text{month}} (\mathbf{\$36,000/\text{year}})$ in unreconciled financial losses + \$120,000 in accounting audit penalties).
-- Implementing 64-bit integer cents (`balance_cents = balance_cents - amount`) guarantees **100% mathematical zero-defect reconciliation**.
-- **FinOps ROI**: Eliminates **\$156,000/year in financial write-offs and audit labor**.
+
+* Using floating-point doubles causes fractional rounding errors averaging \$0.0003 per invoice ($10\text{M invoices} \times \$0.0003 = \mathbf{\$3,000/\text{month}} (\mathbf{\$36,000/\text{year}})$ in unreconciled financial losses + \$120,000 in accounting audit penalties).
+* Implementing 64-bit integer cents (`balance_cents = balance_cents - amount`) guarantees **100% mathematical zero-defect reconciliation**.
+* **FinOps ROI**: Eliminates **\$156,000/year in financial write-offs and audit labor**.
 
 ### 2. Native Bitwise Operations vs Table Allocation
-- Tracking 32 boolean permission flags for 5,000,000 active users using Lua tables (`{ read = true, write = false }`) consumes **1.2 Gigabytes of RAM**.
-- Packing flags into a single 64-bit integer bitmask (`user.flags & PERM_READ ~= 0`) consumes **40 Megabytes of RAM**.
-- **FinOps ROI**: Reclaims 1.16GB of high-speed RAM per server node, cutting cloud database hosting costs by **70%**.
+
+* Tracking 32 boolean permission flags for 5,000,000 active users using Lua tables (`{ read = true, write = false }`) consumes **1.2 Gigabytes of RAM**.
+* Packing flags into a single 64-bit integer bitmask (`user.flags & PERM_READ ~= 0`) consumes **40 Megabytes of RAM**.
+* **FinOps ROI**: Reclaims 1.16GB of high-speed RAM per server node, cutting cloud database hosting costs by **70%**.

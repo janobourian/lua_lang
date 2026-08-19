@@ -1,13 +1,14 @@
 # Module 11: Lua Coroutines, Cooperative Multitasking, Generators & Cosockets
 
-**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem  
-**Category:** Asymmetric Coroutines, Cooperative Event Loops, Yield/Resume Pipelines & Cosockets  
-**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`  
+**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem
+**Category:** Asymmetric Coroutines, Cooperative Event Loops, Yield/Resume Pipelines & Cosockets
+**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`
 **Status:** ✅ Completed
 
 ---
 
 ## 📑 Table of Contents
+
 1. [High-Level Overview & Executive Summary](#1-high-level-overview--executive-summary)
 2. [First-Class Asymmetric Coroutine Mechanics & Lifecycle States](#2-first-class-asymmetric-coroutine-mechanics--lifecycle-states)
 3. [Bidirectional Data Flow (yield <-> resume Value Passing)](#3-bidirectional-data-flow-yield---resume-value-passing)
@@ -17,14 +18,12 @@
 7. [Certification & Engineering Essentials (Lua / OpenResty Cheat Sheet)](#7-certification--engineering-essentials-lua--openresty-cheat-sheet)
 8. [Comparative Analysis Matrix: Concurrency Paradigms](#8-comparative-analysis-matrix-concurrency-paradigms)
 9. [Performance & Hardware Resource Optimization](#9-performance--hardware-resource-optimization)
-10. [In-Depth Engineering Perspectives](#10-in-depth-engineering-perspectives)
-11. [Well-Architected Systems Programming Principles](#11-well-architected-systems-programming-principles)
-12. [Step-by-Step Production Lab: Cooperative Non-Blocking Task Scheduler](#12-step-by-step-production-lab-cooperative-non-blocking-task-scheduler)
-13. [Pure CLI / Command Interface](#13-pure-cli--command-interface)
-14. [Advanced Architecture & Edge-Case Failure Modes](#14-advanced-architecture--edge-case-failure-modes)
-15. [Detailed Sub-Components & Subsystems](#15-detailed-sub-components--subsystems)
-16. [References (The 5+5 Rule)](#16-references-the-55-rule)
-17. [Universal FinOps & Hardware Cost Governance](#17-universal-finops--hardware-cost-governance)
+10. [Step-by-Step Production Lab: Cooperative Non-Blocking Task Scheduler](#10-step-by-step-production-lab-cooperative-non-blocking-task-scheduler)
+11. [Pure CLI / Command Interface](#11-pure-cli--command-interface)
+12. [Advanced Architecture & Edge-Case Failure Modes](#12-advanced-architecture--edge-case-failure-modes)
+13. [Detailed Sub-Components & Subsystems](#13-detailed-sub-components--subsystems)
+14. [References (The 5+5 Rule)](#14-references-the-55-rule)
+15. [Universal FinOps & Hardware Cost Governance](#15-universal-finops--hardware-cost-governance)
 
 ---
 
@@ -36,7 +35,7 @@ Lua solves concurrency through **First-Class Asymmetric Coroutines (Collaborativ
 
 This cooperative execution model is the architectural foundation of **OpenResty (Cosockets)**, **Kong API Gateway**, and **Cloudflare CDN**. By marrying Linux non-blocking **`epoll`** event demultiplexing with Lua coroutines, OpenResty allows developers to write straightforward, readable, synchronous-looking code (`local data = sock:receive()`) while executing under the hood with **100% non-blocking, asynchronous performance**.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               LUA COROUTINE ASYMMETRIC STATE TRANSITION TOPOLOGY               │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -65,6 +64,7 @@ This cooperative execution model is the architectural foundation of **OpenResty 
 ```
 
 ### 👔 Executive Summary (For Managers & Non-Technical Stakeholders)
+
 * **Business Purpose**: Allows a single cloud server to handle 100,000+ customer web transactions simultaneously without crashing, locking up, or requiring expensive hardware clusters.
 * **How It Works**: Operates like relay runners. When a task waits for database results or network data, it politely pauses (yields) and lets other tasks run, resuming instantly when data arrives.
 * **Key Business Value & ROI**: Slashes API gateway hosting bills by up to 80%, eliminates multithreading deadlocks, and allows engineering teams to write clean code without messy async callback pyramids.
@@ -73,7 +73,7 @@ This cooperative execution model is the architectural foundation of **OpenResty 
 
 ## 2. First-Class Asymmetric Coroutine Mechanics & Lifecycle States
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     THE 4 COROUTINE LIFECYCLE STATES                           │
 ├───────────────────┬────────────────────────────────────────────────────────────┤
@@ -96,7 +96,7 @@ This cooperative execution model is the architectural foundation of **OpenResty 
 
 Lua coroutines provide elegant bidirectional data exchange across yield boundaries:
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               BIDIRECTIONAL COROUTINE VALUE EXCHANGE MECHANICS                 │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -136,7 +136,7 @@ end
 
 ## 5. The OpenResty Cosocket Revolution: Epoll + Coroutine Synergy
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               OPENRESTY NON-BLOCKING COSOCKET ARCHITECTURE                     │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -202,15 +202,15 @@ end
 | Feature | Lua Asymmetric Coroutines | OS Threads (Pthreads) | Node.js Async/Await | Go Goroutines |
 | :--- | :--- | :--- | :--- | :--- |
 | **Stack Memory** | **~1 KB per coroutine** | ~8 MB per thread | Callback closures | ~2 KB dynamic stack |
-| **Scheduling** | **Explicit Cooperative** | Preemptive Kernel | Single-thread Promise| Preemptive M:N runtime |
-| **Context Switch Cost**| **~2 Nanoseconds** | ~1-2 Microseconds | Promise resolution | ~200 Nanoseconds |
-| **Race Conditions** | **Zero (Cooperative)** | High (Mutex required)| Zero | High (Channels/Locks) |
+| **Scheduling** | **Explicit Cooperative** | Preemptive Kernel | Single-thread Promise | Preemptive M:N runtime |
+| **Context Switch Cost** | **~2 Nanoseconds** | ~1-2 Microseconds | Promise resolution | ~200 Nanoseconds |
+| **Race Conditions** | **Zero (Cooperative)** | High (Mutex required) | Zero | High (Channels/Locks) |
 
 ---
 
 ## 9. Performance & Hardware Resource Optimization
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        COROUTINE TUNING PLAYBOOK                               │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -226,8 +226,9 @@ end
 
 ## 10. Step-by-Step Production Lab: Cooperative Non-Blocking Task Scheduler
 
-### File Structure:
-- [`src/cooperative_scheduler.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/cooperative_scheduler.lua)
+### File Structure
+
+* [`src/cooperative_scheduler.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/cooperative_scheduler.lua)
 
 ### Step 1: Implement Enterprise Cooperative Micro-Task Engine
 
@@ -317,19 +318,25 @@ scheduler:run()
 ## 11. Pure CLI / Command Interface
 
 ### 1. Execute Cooperative Task Scheduler
+
 Run scheduler test harness:
+
 ```bash
 lua src/cooperative_scheduler.lua
 ```
 
 ### 2. Verify Coroutine States and Yield Semantics in REPL
+
 Inspect coroutine status transitions:
+
 ```bash
 lua -e 'local co = coroutine.create(function() coroutine.yield("PAUSED") end); print(coroutine.status(co)); print(coroutine.resume(co)); print(coroutine.status(co))'
 ```
 
 ### 3. Verify Generator Iteration with coroutine.wrap
+
 Execute generator loop:
+
 ```bash
 lua -e 'local g = coroutine.wrap(function() for i=1,3 do coroutine.yield(i*10) end end); for v in g do print("Gen:", v) end'
 ```
@@ -338,7 +345,7 @@ lua -e 'local g = coroutine.wrap(function() for i=1,3 do coroutine.yield(i*10) e
 
 ## 12. Advanced Architecture & Edge-Case Failure Modes
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     COROUTINE FAILURE RECOVERY MATRIX                          │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -363,29 +370,37 @@ lua -e 'local g = coroutine.wrap(function() for i=1,3 do coroutine.yield(i*10) e
 ## 13. Detailed Sub-Components & Subsystems
 
 ### 1. Lua Coroutine Allocator (`lua_newthread`)
+
 * **Key Concepts**: Allocates a new `lua_State` object with independent virtual register stack and program counter.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local co = coroutine.create(function() end); print(type(co))'
 ```
 
 ### 2. Virtual Machine Yield Dispatcher (`lua_yield`)
+
 * **Key Concepts**: Saves register window offset, updates status to `LUA_YIELD`, and returns control to C caller.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local co = coroutine.create(coroutine.yield); coroutine.resume(co); print(coroutine.status(co))'
 ```
 
 ### 3. OpenResty Cosocket Event Bridge (`ngx.socket.tcp`)
+
 * **Key Concepts**: Binds NGINX `epoll` event notifications directly to Lua coroutine thread suspension and resumption.
 * **CLI / Tool Snippet**:
+
 ```bash
 nginx -V 2>&1 | grep -i lua 2>/dev/null || true
 ```
 
 ### 4. Lua Generator Wrapper Factory (`coroutine.wrap`)
+
 * **Key Concepts**: Creates a C closure holding the coroutine reference as an upvalue, raising runtime errors directly.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local f = coroutine.wrap(function() return 42 end); print(f())'
 ```
@@ -395,6 +410,7 @@ lua -e 'local f = coroutine.wrap(function() return 42 end); print(f())'
 ## 14. References (The 5+5 Rule)
 
 ### Official Documentation & Academic Specifications
+
 1. [Lua 5.4 Reference Manual: Section 2.6 Coroutines](https://www.lua.org/manual/5.4/manual.html#2.6)
 2. [Ana Lúcia de Moura, Roberto Ierusalimschy: Revisiting Coroutines (ACM TOPLAS)](https://www.inf.puc-rio.br/~roberto/docs/coro-revis-2004.pdf)
 3. [OpenResty Non-Blocking Cosockets Architecture Specification](https://github.com/openresty/lua-nginx-module#ngxsockettcp)
@@ -402,17 +418,18 @@ lua -e 'local f = coroutine.wrap(function() return 42 end); print(f())'
 5. [SEI CERT: Concurrency and Race Condition Safety in Cooperative Systems](https://wiki.sei.cmu.edu/)
 
 ### Authoritative Engineering Textbooks & Systems Deep Dives
-6. [Roberto Ierusalimschy: Programming in Lua (Chapter 24: Coroutines)](https://www.lua.org/pil/24.html)
-7. [Eli Bendersky: Asymmetric Coroutines and Non-Blocking Architecture in Lua](https://eli.thegreenplace.net/)
-8. [Cloudflare Engineering: Scaling OpenResty Cosockets to 10 Million Requests per Second](https://blog.cloudflare.com/)
-9. [Datadog Engineering: Tracing Coroutine Lifecycle States in Edge Proxies](https://www.datadoghq.com/blog/)
-10. [High-Performance Linux Systems: Cooperative Coroutines vs Kernel Epoll Threads](https://www.kernel.org/)
+
+1. [Roberto Ierusalimschy: Programming in Lua (Chapter 24: Coroutines)](https://www.lua.org/pil/24.html)
+2. [Eli Bendersky: Asymmetric Coroutines and Non-Blocking Architecture in Lua](https://eli.thegreenplace.net/)
+3. [Cloudflare Engineering: Scaling OpenResty Cosockets to 10 Million Requests per Second](https://blog.cloudflare.com/)
+4. [Datadog Engineering: Tracing Coroutine Lifecycle States in Edge Proxies](https://www.datadoghq.com/blog/)
+5. [High-Performance Linux Systems: Cooperative Coroutines vs Kernel Epoll Threads](https://www.kernel.org/)
 
 ---
 
 ## 15. Universal FinOps & Hardware Cost Governance
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        COROUTINE FINOPS SAVINGS MATRIX                         │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -433,12 +450,15 @@ lua -e 'local f = coroutine.wrap(function() return 42 end); print(f())'
 ```
 
 ### 1. Cooperative Coroutines vs OS Threading Cloud Fleet Economics
+
 In a real-time WebSocket and API gateway supporting 100,000 concurrent client connections:
-- **Operating System Threads (Pthreads / JVM)**: Each client requires a 4MB thread stack ($100,000 \times 4\text{MB} = \mathbf{400\text{ Gigabytes RAM}}$), requiring a cluster of 16 high-memory cloud servers ($16 \times \$720/\text{month} = \mathbf{\$11,520/\text{month}}$).
-- **Lua Cooperative Coroutines (OpenResty)**: Each connection consumes **1.5KB of memory** ($100,000 \times 1.5\text{KB} = \mathbf{150\text{ Megabytes RAM}}$).
-- Required server fleet drops from 16 to **1 single standard cloud server** ($1 \times \$120 = \mathbf{\$120/\text{month}}$).
-- **FinOps ROI**: Delivers **\$11,400/month (\$136,800/year) in direct cloud infrastructure savings**.
+
+* **Operating System Threads (Pthreads / JVM)**: Each client requires a 4MB thread stack ($100,000 \times 4\text{MB} = \mathbf{400\text{ Gigabytes RAM}}$), requiring a cluster of 16 high-memory cloud servers ($16 \times \$720/\text{month} = \mathbf{\$11,520/\text{month}}$).
+* **Lua Cooperative Coroutines (OpenResty)**: Each connection consumes **1.5KB of memory** ($100,000 \times 1.5\text{KB} = \mathbf{150\text{ Megabytes RAM}}$).
+* Required server fleet drops from 16 to **1 single standard cloud server** ($1 \times \$120 = \mathbf{\$120/\text{month}}$).
+* **FinOps ROI**: Delivers **\$11,400/month (\$136,800/year) in direct cloud infrastructure savings**.
 
 ### 2. Lock-Free CPU Efficiency Gains
-- Preemptive multithreading spends up to 40% of CPU cycles spinning on mutex locks and processing kernel context switches.
-- Cooperative coroutines execute uninterrupted on dedicated single-core event loops, operating at **99% pure CPU throughput efficiency**.
+
+* Preemptive multithreading spends up to 40% of CPU cycles spinning on mutex locks and processing kernel context switches.
+* Cooperative coroutines execute uninterrupted on dedicated single-core event loops, operating at **99% pure CPU throughput efficiency**.

@@ -1,30 +1,29 @@
 # Module 07: Lua Metatables, Metamethods & Operator Overloading Architecture
 
-**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem  
-**Category:** Metatable Dispatches, __index / __newindex Interception, Operator Overloading & Proxies  
-**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`  
+**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem
+**Category:** Metatable Dispatches, __index /__newindex Interception, Operator Overloading & Proxies
+**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`
 **Status:** ✅ Completed
 
 ---
 
 ## 📑 Table of Contents
+
 1. [High-Level Overview & Executive Summary](#1-high-level-overview--executive-summary)
 2. [The Metatable Architecture & VM Dispatch Mechanics](#2-the-metatable-architecture--vm-dispatch-mechanics)
-3. [Table Access Interception: __index, __newindex, rawget & rawset](#3-table-access-interception-__index-__newindex-rawget--rawset)
+3. [Table Access Interception: __index,__newindex, rawget & rawset](#3-table-access-interception-__index__newindex-rawget--rawset)
 4. [Mathematical & Relational Operator Overloading](#4-mathematical--relational-operator-overloading)
 5. [Callable Tables (__call), String Serialization (__tostring) & Privacy (__metatable)](#5-callable-tables-__call-string-serialization-__tostring--privacy-__metatable)
 6. [Weak Table References (__mode) & Garbage Collection Finalizers (__gc)](#6-weak-table-references-__mode--garbage-collection-finalizers-__gc)
 7. [Certification & Engineering Essentials (Lua / OpenResty Cheat Sheet)](#7-certification--engineering-essentials-lua--openresty-cheat-sheet)
 8. [Comparative Analysis Matrix: Metatable Hooks vs OOP Magic Methods](#8-comparative-analysis-matrix-metatable-hooks-vs-oop-magic-methods)
 9. [Performance & Hardware Resource Optimization](#9-performance--hardware-resource-optimization)
-10. [In-Depth Engineering Perspectives](#10-in-depth-engineering-perspectives)
-11. [Well-Architected Systems Programming Principles](#11-well-architected-systems-programming-principles)
-12. [Step-by-Step Production Lab: 2D Vector Engine & Immutable Config Proxy](#12-step-by-step-production-lab-2d-vector-engine--immutable-config-proxy)
-13. [Pure CLI / Command Interface](#13-pure-cli--command-interface)
-14. [Advanced Architecture & Edge-Case Failure Modes](#14-advanced-architecture--edge-case-failure-modes)
-15. [Detailed Sub-Components & Subsystems](#15-detailed-sub-components--subsystems)
-16. [References (The 5+5 Rule)](#16-references-the-55-rule)
-17. [Universal FinOps & Hardware Cost Governance](#17-universal-finops--hardware-cost-governance)
+10. [Step-by-Step Production Lab: 2D Vector Engine & Immutable Config Proxy](#10-step-by-step-production-lab-2d-vector-engine--immutable-config-proxy)
+11. [Pure CLI / Command Interface](#11-pure-cli--command-interface)
+12. [Advanced Architecture & Edge-Case Failure Modes](#12-advanced-architecture--edge-case-failure-modes)
+13. [Detailed Sub-Components & Subsystems](#13-detailed-sub-components--subsystems)
+14. [References (The 5+5 Rule)](#14-references-the-55-rule)
+15. [Universal FinOps & Hardware Cost Governance](#15-universal-finops--hardware-cost-governance)
 
 ---
 
@@ -36,7 +35,7 @@ When an operation occurs that the standard table cannot fulfill—such as readin
 
 Mastering metatables allows software architects to implement **Immutable Read-Only Proxies**, **Hardware Vector Arithmetic Overloading**, **Lazy Database Attribute Hydration**, and **Encapsulated Security Sandboxes**.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               LUA VM METATABLE DISPATCH & INTERCEPTION FLOW                    │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -60,6 +59,7 @@ Mastering metatables allows software architects to implement **Immutable Read-On
 ```
 
 ### 👔 Executive Summary (For Managers & Non-Technical Stakeholders)
+
 * **Business Purpose**: Allows software systems to customize how data structures interact, enabling natural mathematical calculations, automated security guards, and database fallbacks.
 * **How It Works**: Attaches invisible policy rulebooks (metatables) to data containers, automatically executing custom validation or fallback logic whenever data is accessed, modified, or calculated.
 * **Key Business Value & ROI**: Eliminates repetitive defensive checks across codebases, secures critical configuration data against accidental mutation, and provides clean, elegant APIs for business developers.
@@ -70,7 +70,7 @@ Mastering metatables allows software architects to implement **Immutable Read-On
 
 In Lua, tables have individual metatables assigned via **`setmetatable(t, mt)`** and inspected via **`getmetatable(t)`**. Other data types (numbers, strings, booleans, functions) share a single global metatable per type managed via the C API (e.g. strings have a default metatable pointing `__index` to the `string` library, enabling object syntax `"hello":upper()`).
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     COMPREHENSIVE METAMETHOD TAXONOMY                          │
 ├───────────────────┬────────────────────────────────────────────────────────────┤
@@ -102,17 +102,21 @@ In Lua, tables have individual metatables assigned via **`setmetatable(t, mt)`**
 
 ---
 
-## 3. Table Access Interception: __index, __newindex, rawget & rawset
+## 3. Table Access Interception: __index,__newindex, rawget & rawset
 
 ### 3.1 The `__index` Fallback (Table vs Function)
+
 * If `__index` is a **table**, Lua searches for the missing key inside that fallback table.
 * If `__index` is a **function**, Lua invokes `__index(t, k)` and returns the calculated result.
 
 ### 3.2 The `__newindex` Mutation Interceptor
+
 Triggered ONLY when assigning to a key that is currently `nil` in the target table.
 
 ### 3.3 Bypassing Metatables with `rawget` and `rawset`
+
 To read or write table memory directly without triggering `__index` or `__newindex` metamethods (crucial to avoid infinite recursive loops!):
+
 ```lua
 rawset(t, key, value) -- Direct raw memory write in O(1) time
 local val = rawget(t, key) -- Direct raw memory read in O(1) time
@@ -151,7 +155,9 @@ print(v3.x, v3.y)  --> 15, 35
 ## 5. Callable Tables (__call), String Serialization (__tostring) & Privacy (__metatable)
 
 ### 5.1 Callable Tables (`__call`)
+
 Allows table instances to be invoked as functions:
+
 ```lua
 local mt = {
     __call = function(t, ...)
@@ -163,7 +169,9 @@ callable_obj("arg1", "arg2")
 ```
 
 ### 5.2 Metatable Privacy Guard (`__metatable`)
+
 Setting `__metatable = "Access Denied"` prevents external code from reading or modifying the metatable via `getmetatable()` or `setmetatable()`:
+
 ```lua
 local mt = {
     __metatable = "Protected: Access Denied"
@@ -199,15 +207,15 @@ local cache = setmetatable({}, { __mode = "v" }) -- Weak values!
 | Feature | Lua Metatables | Python Magic Methods (`__getitem__`) | JS Proxies (`new Proxy`) |
 | :--- | :--- | :--- | :--- |
 | **Interception Model** | Companion Table (`mt`) | Class dunder methods | Proxy wrapper object |
-| **Performance** | **Near-Native (1-2ns)**| Moderate (Method call) | Heavy VM Traps (~15ns) |
-| **Operator Overload**| **Full Arithmetic/Bit** | Full Arithmetic | Limited (No operator overload)|
-| **Direct Bypass** | **`rawget` / `rawset`**| `object.__getattribute__`| `Reflect.*` |
+| **Performance** | **Near-Native (1-2ns)** | Moderate (Method call) | Heavy VM Traps (~15ns) |
+| **Operator Overload** | **Full Arithmetic/Bit** | Full Arithmetic | Limited (No operator overload) |
+| **Direct Bypass** | **`rawget` / `rawset`** | `object.__getattribute__` | `Reflect.*` |
 
 ---
 
 ## 9. Performance & Hardware Resource Optimization
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        METATABLE TUNING PLAYBOOK                               │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -223,9 +231,10 @@ local cache = setmetatable({}, { __mode = "v" }) -- Weak values!
 
 ## 10. Step-by-Step Production Lab: 2D Vector Engine & Immutable Config Proxy
 
-### File Structure:
-- [`src/vector2d.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/vector2d.lua)
-- [`src/immutable_proxy.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/immutable_proxy.lua)
+### File Structure
+
+* [`src/vector2d.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/vector2d.lua)
+* [`src/immutable_proxy.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/immutable_proxy.lua)
 
 ### Step 1: Implement Immutable Configuration Proxy
 
@@ -330,20 +339,26 @@ print(string_format("Mutation Blocked Safely: %s", tostring(not ok)))
 ## 11. Pure CLI / Command Interface
 
 ### 1. Execute Vector & Metatable Suite
+
 Run metatable engine:
+
 ```bash
 lua -e 'package.path="./src/?.lua;" .. package.path' \
     src/vector2d.lua
 ```
 
 ### 2. Verify Metatable Protection Errors via CLI
+
 Test protected metatable assertion:
+
 ```bash
 lua -e 'local t = setmetatable({}, { __metatable="Locked" }); print(getmetatable(t))'
 ```
 
 ### 3. Inspect Weak Table Garbage Collection Behavior
+
 Verify weak table value eviction:
+
 ```bash
 lua -e 'local c = setmetatable({}, {__mode="v"}); do local obj = {data=123}; c["k"] = obj end; collectgarbage(); print(c["k"])'
 ```
@@ -352,7 +367,7 @@ lua -e 'local c = setmetatable({}, {__mode="v"}); do local obj = {data=123}; c["
 
 ## 12. Advanced Architecture & Edge-Case Failure Modes
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                    METATABLE FAILURE RECOVERY MATRIX                           │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -377,29 +392,37 @@ lua -e 'local c = setmetatable({}, {__mode="v"}); do local obj = {data=123}; c["
 ## 13. Detailed Sub-Components & Subsystems
 
 ### 1. Lua Virtual Machine Metamethod Dispatcher (`luaT_gettm`)
+
 * **Key Concepts**: Internal C lookup routine scanning table metatables for fast-tag metamethod identifiers in 1 CPU cycle.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local mt = { __add = function(a,b) return 99 end }; local t = setmetatable({}, mt); print(t + 1)'
 ```
 
 ### 2. Fast Raw Memory Access Subsystem (`rawget` / `rawset`)
+
 * **Key Concepts**: Direct C array and hash access functions bypassing all metatable lookups and hooks.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local t = {}; rawset(t, "k", 42); print(rawget(t, "k"))'
 ```
 
 ### 3. Lua Weak Table Ephemeron Subsystem
+
 * **Key Concepts**: Advanced garbage collection algorithm that reclaims key-value pairs where keys are only referenced through values.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'print(collectgarbage("isrunning"))'
 ```
 
 ### 4. Metatable Protection Tag (`__metatable`)
+
 * **Key Concepts**: Security attribute disabling `setmetatable` and masking `getmetatable` outputs.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local t = setmetatable({}, {__metatable="DENIED"}); print(pcall(setmetatable, t, {}))'
 ```
@@ -409,6 +432,7 @@ lua -e 'local t = setmetatable({}, {__metatable="DENIED"}); print(pcall(setmetat
 ## 14. References (The 5+5 Rule)
 
 ### Official Documentation & Academic Specifications
+
 1. [Lua 5.4 Reference Manual: Section 2.4 Metatables and Metamethods](https://www.lua.org/manual/5.4/manual.html#2.4)
 2. [Programming in Lua: Chapter 20 (Metatables and Metamethods)](https://www.lua.org/pil/20.html)
 3. [Roberto Ierusalimschy: The Implementation of Lua 5.0 (Metamethod Mechanics)](https://www.lua.org/doc/jucs05.pdf)
@@ -416,17 +440,18 @@ lua -e 'local t = setmetatable({}, {__metatable="DENIED"}); print(pcall(setmetat
 5. [SEI CERT: Object Encapsulation and Metamethod Security](https://wiki.sei.cmu.edu/)
 
 ### Authoritative Engineering Textbooks & Systems Deep Dives
-6. [Roberto Ierusalimschy: Programming in Lua (Chapter 21: Object-Oriented Programming)](https://www.lua.org/pil/21.html)
-7. [Eli Bendersky: Lua Metatables and Metamethods Deep Dive](https://eli.thegreenplace.net/)
-8. [Cloudflare Engineering: High-Performance Routing with Table Proxies](https://blog.cloudflare.com/)
-9. [OpenResty Guide: Metatable Performance Optimization in LuaJIT](https://openresty.org/)
-10. [High-Performance Linux Systems: Sandboxing and Immutable Memory Structures](https://www.kernel.org/)
+
+1. [Roberto Ierusalimschy: Programming in Lua (Chapter 21: Object-Oriented Programming)](https://www.lua.org/pil/21.html)
+2. [Eli Bendersky: Lua Metatables and Metamethods Deep Dive](https://eli.thegreenplace.net/)
+3. [Cloudflare Engineering: High-Performance Routing with Table Proxies](https://blog.cloudflare.com/)
+4. [OpenResty Guide: Metatable Performance Optimization in LuaJIT](https://openresty.org/)
+5. [High-Performance Linux Systems: Sandboxing and Immutable Memory Structures](https://www.kernel.org/)
 
 ---
 
 ## 15. Universal FinOps & Hardware Cost Governance
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        METATABLE FINOPS SAVINGS MATRIX                         │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -447,12 +472,15 @@ lua -e 'local t = setmetatable({}, {__metatable="DENIED"}); print(pcall(setmetat
 ```
 
 ### 1. Shared Metatables vs Per-Instance Metatable Memory Economics
+
 In an API gateway processing 500,000 concurrent user sessions:
-- **Creating Separate Metatables per Object (`setmetatable(user, { __index = User })`)**: Allocates 500,000 distinct metatable objects in heap RAM ($500,000 \times 64\text{ Bytes} = \mathbf{32\text{ Megabytes}}$ of redundant metadata + Garbage Collector tracking overhead).
-- **Shared Class Prototype Metatable (`setmetatable(user, UserMt)`)**: Reuses 1 single metatable across all 500,000 instances.
-- **FinOps ROI**: Eliminates 32MB of GC memory fragmentation per server node, increasing worker density by **20%**.
+
+* **Creating Separate Metatables per Object (`setmetatable(user, { __index = User })`)**: Allocates 500,000 distinct metatable objects in heap RAM ($500,000 \times 64\text{ Bytes} = \mathbf{32\text{ Megabytes}}$ of redundant metadata + Garbage Collector tracking overhead).
+* **Shared Class Prototype Metatable (`setmetatable(user, UserMt)`)**: Reuses 1 single metatable across all 500,000 instances.
+* **FinOps ROI**: Eliminates 32MB of GC memory fragmentation per server node, increasing worker density by **20%**.
 
 ### 2. Weak Table Caches vs Manual Cache Invalidation
-- Manual cache eviction systems require background timer threads and complex time-to-live (TTL) loops, consuming CPU cycles and periodically crashing with Out-of-Memory errors.
-- Weak table caches (`__mode = "v"`) let the native Lua Garbage Collector reclaim unused entries automatically during standard GC cycles with **zero CPU timer overhead**.
-- **FinOps ROI**: Slashes background monitoring compute spend by **15%**.
+
+* Manual cache eviction systems require background timer threads and complex time-to-live (TTL) loops, consuming CPU cycles and periodically crashing with Out-of-Memory errors.
+* Weak table caches (`__mode = "v"`) let the native Lua Garbage Collector reclaim unused entries automatically during standard GC cycles with **zero CPU timer overhead**.
+* **FinOps ROI**: Slashes background monitoring compute spend by **15%**.

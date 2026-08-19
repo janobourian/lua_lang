@@ -1,13 +1,14 @@
 # Module 04: Lua Functions, Lexical Closures, Upvalues & Proper Tail Calls
 
-**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem  
-**Category:** First-Class Closures, Upvalue Migration, Multiple Returns & Tail Call Optimization  
-**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`  
+**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem
+**Category:** First-Class Closures, Upvalue Migration, Multiple Returns & Tail Call Optimization
+**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`
 **Status:** ✅ Completed
 
 ---
 
 ## 📑 Table of Contents
+
 1. [High-Level Overview & Executive Summary](#1-high-level-overview--executive-summary)
 2. [First-Class Functions & Anonymous Lambda Semantics](#2-first-class-functions--anonymous-lambda-semantics)
 3. [Lexical Closures & The Open-to-Closed Upvalue Migration Lifecycle](#3-lexical-closures--the-open-to-closed-upvalue-migration-lifecycle)
@@ -17,14 +18,12 @@
 7. [Certification & Engineering Essentials (Lua / OpenResty Cheat Sheet)](#7-certification--engineering-essentials-lua--openresty-cheat-sheet)
 8. [Comparative Analysis Matrix: Function Execution Modalities](#8-comparative-analysis-matrix-function-execution-modalities)
 9. [Performance & Hardware Resource Optimization](#9-performance--hardware-resource-optimization)
-10. [In-Depth Engineering Perspectives](#10-in-depth-engineering-perspectives)
-11. [Well-Architected Systems Programming Principles](#11-well-architected-systems-programming-principles)
-12. [Step-by-Step Production Lab: Zero-Stack-Growth FSM Protocol Parser](#12-step-by-step-production-lab-zero-stack-growth-fsm-protocol-parser)
-13. [Pure CLI / Command Interface](#13-pure-cli--command-interface)
-14. [Advanced Architecture & Edge-Case Failure Modes](#14-advanced-architecture--edge-case-failure-modes)
-15. [Detailed Sub-Components & Subsystems](#15-detailed-sub-components--subsystems)
-16. [References (The 5+5 Rule)](#16-references-the-55-rule)
-17. [Universal FinOps & Hardware Cost Governance](#17-universal-finops--hardware-cost-governance)
+10. [Step-by-Step Production Lab: Zero-Stack-Growth FSM Protocol Parser](#10-step-by-step-production-lab-zero-stack-growth-fsm-protocol-parser)
+11. [Pure CLI / Command Interface](#11-pure-cli--command-interface)
+12. [Advanced Architecture & Edge-Case Failure Modes](#12-advanced-architecture--edge-case-failure-modes)
+13. [Detailed Sub-Components & Subsystems](#13-detailed-sub-components--subsystems)
+14. [References (The 5+5 Rule)](#14-references-the-55-rule)
+15. [Universal FinOps & Hardware Cost Governance](#15-universal-finops--hardware-cost-governance)
 
 ---
 
@@ -33,12 +32,13 @@
 In Lua, functions are **first-class values with lexical scoping**. Functions have no special status: they are values just like integers, strings, or tables. A function declaration `function foo() end` is purely syntactic sugar for assigning an anonymous function closure to a variable: `foo = function() end`.
 
 When a function references a variable from an outer enclosing lexical scope, Lua creates an **Upvalue**. Unlike primitive languages where closures take full, expensive snapshots of outer stack frames, the Lua Virtual Machine manages upvalues through a lightweight two-phase lifecycle:
+
 1. **Open Upvalues**: The upvalue points directly to a live virtual register slot on the Lua VM call stack while the outer function executes.
 2. **Closed Upvalues**: When the outer function returns, the Lua runtime (`luaF_close`) automatically migrates the value from the expiring stack frame into a dedicated heap-managed `UpVal` container, preserving state indefinitely.
 
 Furthermore, Lua guarantees **Proper Tail Calls (Tail Call Optimization - TCO)**: when the last action of a function is to return the result of another function (`return func(args)`), the Lua VM reuses the current stack frame in-place (`OP_TAILCALL`), enabling infinite recursive state machines in **$O(1)$ constant memory space**.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               UPVALUE LIFECYCLE & PROPER TAIL CALL ARCHITECTURE                │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -57,6 +57,7 @@ Furthermore, Lua guarantees **Proper Tail Calls (Tail Call Optimization - TCO)**
 ```
 
 ### 👔 Executive Summary (For Managers & Non-Technical Stakeholders)
+
 * **Business Purpose**: Enables enterprise systems to coordinate long-running state machines, transaction workflows, and microservice events without risking memory leaks or call stack crashes.
 * **How It Works**: Packages private data directly with business subroutines (closures) and recycles computer memory during step-by-step state transitions so memory never grows.
 * **Key Business Value & ROI**: Slashes application server memory footprint by up to 50%, eliminates catastrophic Stack Overflow crashes, and simplifies complex asynchronous business logic.
@@ -96,7 +97,7 @@ print(c1()) --> 101
 print(c1()) --> 102
 ```
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                   UPVALUE C MEMORY STRUCTURE (`struct UpVal`)                  │
 ├───────────────────┬────────────────────────────────────────────────────────────┤
@@ -115,7 +116,7 @@ print(c1()) --> 102
 
 Lua functions natively return multiple values. However, multiple returns are dynamically adjusted based on the calling expression context:
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     MULTIPLE RETURN VALUE CONTEXT TRUNCATION                   │
 ├───────────────────┬───────────────────┬────────────────────────────────────────┤
@@ -154,14 +155,15 @@ A **Proper Tail Call** occurs when a function returns the direct result of anoth
 
 $$\text{Proper Tail Call Invariant: } \mathbf{\text{return } \langle\text{Function}\rangle(\langle\text{Arguments}\rangle)}$$
 
-### ⚠️ Violations That Break Tail Call Optimization:
+### ⚠️ Violations That Break Tail Call Optimization
+
 ```lua
 return f(x) + 1  -- BROKEN: Must perform addition AFTER f(x) returns!
 return (f(x))    -- BROKEN: Parentheses force 1 single return value!
 local res = f(x); return res -- BROKEN: Subroutine call is not returned directly!
 ```
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     STANDARD RECURSION VS PROPER TAIL CALLS                    │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -190,14 +192,14 @@ local res = f(x); return res -- BROKEN: Subroutine call is not returned directly
 | :--- | :--- | :--- | :--- | :--- |
 | **Stack Allocation** | New Stack Frame | **Reuses Existing Frame** | Stack Frame + Upvals | C Stack Frame |
 | **Call Overhead** | ~3ns | **~1ns (Direct Jump)** | ~4ns | ~5ns (C Boundary) |
-| **Memory Growth** | $O(N)$ with recursion | **$O(1)$ Constant Space** | Heap `UpVal` on close| Managed in C |
+| **Memory Growth** | $O(N)$ with recursion | **$O(1)$ Constant Space** | Heap `UpVal` on close | Managed in C |
 | **Safe for FSMs?** | No (Stack Overflow) | **100% Safe (Infinite)** | Safe | Safe |
 
 ---
 
 ## 9. Performance & Hardware Resource Optimization
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                         FUNCTION TUNING PLAYBOOK                               │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -213,8 +215,9 @@ local res = f(x); return res -- BROKEN: Subroutine call is not returned directly
 
 ## 10. Step-by-Step Production Lab: Zero-Stack-Growth FSM Protocol Parser
 
-### File Structure:
-- [`src/fsm_parser.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/fsm_parser.lua)
+### File Structure
+
+* [`src/fsm_parser.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/fsm_parser.lua)
 
 ### Step 1: Implement Infinite State Machine with Tail Calls
 
@@ -288,19 +291,25 @@ print("State Machine Executed 100% in O(1) Call Stack Space!")
 ## 11. Pure CLI / Command Interface
 
 ### 1. Execute FSM Protocol Parser
+
 Run state machine script:
+
 ```bash
 lua src/fsm_parser.lua
 ```
 
 ### 2. Disassemble Tail Call Bytecode Instructions
+
 Verify generation of `OP_TAILCALL` opcode in bytecode:
+
 ```bash
 luac -l -p src/fsm_parser.lua | grep -i "tailcall"
 ```
 
 ### 3. Verify Closure Upvalues in Lua VM
+
 Inspect upvalue counts in compiled function prototype:
+
 ```bash
 luac -l -v src/fsm_parser.lua | head -n 25
 ```
@@ -309,7 +318,7 @@ luac -l -v src/fsm_parser.lua | head -n 25
 
 ## 12. Advanced Architecture & Edge-Case Failure Modes
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     FUNCTION FAILURE RECOVERY MATRIX                           │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -334,29 +343,37 @@ luac -l -v src/fsm_parser.lua | head -n 25
 ## 13. Detailed Sub-Components & Subsystems
 
 ### 1. Lua Tail Call Executor (`OP_TAILCALL`)
+
 * **Key Concepts**: Replaces caller frame register window with callee arguments, executing a single jump instruction without stack frame allocation.
 * **CLI / Tool Snippet**:
+
 ```bash
 luac -l -p src/fsm_parser.lua | head -n 30
 ```
 
 ### 2. Upvalue Closer Subsystem (`luaF_close`)
+
 * **Key Concepts**: Traverses open upvalue linked list when function returns, copying stack variables into heap containers.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local function f() local x=10; return function() return x end end; print(f()())'
 ```
 
 ### 3. Multiple Return Adjuster (`luaD_poscall`)
+
 * **Key Concepts**: Adjusts VM stack pointer to match expected return value count of caller expression.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local function f() return 1,2,3 end; local a,b=f(); print(a,b)'
 ```
 
 ### 4. Variadic Selector Subsystem (`select`)
+
 * **Key Concepts**: Built-in C function extracting arguments directly from the VM stack without creating table objects.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'print(select("#", "a", "b", "c"))'
 ```
@@ -366,6 +383,7 @@ lua -e 'print(select("#", "a", "b", "c"))'
 ## 14. References (The 5+5 Rule)
 
 ### Official Documentation & Academic Specifications
+
 1. [Lua 5.4 Reference Manual: Section 3.4.10 Function Definitions](https://www.lua.org/manual/5.4/manual.html#3.4.10)
 2. [Lua 5.4 Reference Manual: Section 3.4.11 Variadic Functions](https://www.lua.org/manual/5.4/manual.html#3.4.11)
 3. [Roberto Ierusalimschy: Proper Tail Calls in the Lua Virtual Machine](https://www.lua.org/doc/jucs05.pdf)
@@ -373,17 +391,18 @@ lua -e 'print(select("#", "a", "b", "c"))'
 5. [SEI CERT: Safe Function Calling Invariants in Dynamic Systems](https://wiki.sei.cmu.edu/)
 
 ### Authoritative Engineering Textbooks & Systems Deep Dives
-6. [Roberto Ierusalimschy: Programming in Lua (Chapter 6: More about Functions)](https://www.lua.org/pil/6.html)
-7. [Eli Bendersky: Closures and Tail Calls in Lua Bytecode](https://eli.thegreenplace.net/)
-8. [Cloudflare Engineering: Upvalue Management and Memory Safety in Edge Gateways](https://blog.cloudflare.com/)
-9. [Datadog Engineering: Call Stack Tracing in Lua Microservices](https://www.datadoghq.com/blog/)
-10. [High-Performance Linux Systems: State Machine Optimizations using Tail Recursion](https://www.kernel.org/)
+
+1. [Roberto Ierusalimschy: Programming in Lua (Chapter 6: More about Functions)](https://www.lua.org/pil/6.html)
+2. [Eli Bendersky: Closures and Tail Calls in Lua Bytecode](https://eli.thegreenplace.net/)
+3. [Cloudflare Engineering: Upvalue Management and Memory Safety in Edge Gateways](https://blog.cloudflare.com/)
+4. [Datadog Engineering: Call Stack Tracing in Lua Microservices](https://www.datadoghq.com/blog/)
+5. [High-Performance Linux Systems: State Machine Optimizations using Tail Recursion](https://www.kernel.org/)
 
 ---
 
 ## 15. Universal FinOps & Hardware Cost Governance
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        FUNCTION FINOPS SAVINGS MATRIX                          │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -404,13 +423,16 @@ lua -e 'print(select("#", "a", "b", "c"))'
 ```
 
 ### 1. Proper Tail Call FSM vs Thread Stack Sizing Economics
+
 In a real-time IoT event streaming gateway processing 10,000,000 state transitions daily:
-- **Non-Tail Recursive State Processing**: Grows the call stack with every state transition, requiring large 8MB thread stacks and periodically crashing with Stack Overflow ($8\text{ large cloud instances required} \times \$620/\text{month} = \mathbf{\$4,960/\text{month}}$).
-- **Proper Tail Call (`OP_TAILCALL`) FSM**: Reuses the single root stack frame in $O(1)$ memory, operating with a flat **64KB thread stack footprint**.
-- Required server fleet drops from 8 to **2 small cloud servers** ($2 \times \$150 = \mathbf{\$300/\text{month}}$).
-- **FinOps ROI**: Delivers **\$4,660/month (\$55,920/year) in direct compute infrastructure savings**.
+
+* **Non-Tail Recursive State Processing**: Grows the call stack with every state transition, requiring large 8MB thread stacks and periodically crashing with Stack Overflow ($8\text{ large cloud instances required} \times \$620/\text{month} = \mathbf{\$4,960/\text{month}}$).
+* **Proper Tail Call (`OP_TAILCALL`) FSM**: Reuses the single root stack frame in $O(1)$ memory, operating with a flat **64KB thread stack footprint**.
+* Required server fleet drops from 8 to **2 small cloud servers** ($2 \times \$150 = \mathbf{\$300/\text{month}}$).
+* **FinOps ROI**: Delivers **\$4,660/month (\$55,920/year) in direct compute infrastructure savings**.
 
 ### 2. `select("#")` Variadic Heap Savings
-- Capturing variadics with `table.pack(...)` in a hot telemetry logger allocates 50,000,000 ephemeral tables daily (generating 1.6GB of Garbage Collector memory churn).
-- Switching to `select("#", ...)` reads arguments directly from VM registers with **zero heap allocations**.
-- **FinOps ROI**: Eliminates GC pause spikes, delivering flat sub-millisecond p99 API response latencies.
+
+* Capturing variadics with `table.pack(...)` in a hot telemetry logger allocates 50,000,000 ephemeral tables daily (generating 1.6GB of Garbage Collector memory churn).
+* Switching to `select("#", ...)` reads arguments directly from VM registers with **zero heap allocations**.
+* **FinOps ROI**: Eliminates GC pause spikes, delivering flat sub-millisecond p99 API response latencies.

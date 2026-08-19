@@ -1,30 +1,29 @@
 # Module 02: Lua Strings, String Interning, Pattern Matching & UTF-8 Architecture
 
-**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem  
-**Category:** String Interning, Binary Safety, Lightweight Pattern Matching & UTF-8 Engine  
-**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`  
+**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem
+**Category:** String Interning, Binary Safety, Lightweight Pattern Matching & UTF-8 Engine
+**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`
 **Status:** ✅ Completed
 
 ---
 
 ## 📑 Table of Contents
+
 1. [High-Level Overview & Executive Summary](#1-high-level-overview--executive-summary)
 2. [String Interning Architecture: Short Strings vs Long Strings](#2-string-interning-architecture-short-strings-vs-long-strings)
 3. [Binary Cleanliness & The string Library Ecosystem](#3-binary-cleanliness--the-string-library-ecosystem)
 4. [Lua Pattern Matching Engine: Syntax, Modifiers & Captures](#4-lua-pattern-matching-engine-syntax-modifiers--captures)
 5. [Advanced Patterns: Non-Greedy Repetition, Balanced Matches & Frontier Patterns](#5-advanced-patterns-non-greedy-repetition-balanced-matches--frontier-patterns)
-6. [UTF-8 Architecture & Codepoint Iteration (<utf8> Library)](#6-utf-8-architecture--codepoint-iteration-utf8-library)
+6. [UTF-8 Architecture & Codepoint Iteration (utf8 Library)](#6-utf-8-architecture--codepoint-iteration-utf8-library)
 7. [Certification & Engineering Essentials (Lua / OpenResty Cheat Sheet)](#7-certification--engineering-essentials-lua--openresty-cheat-sheet)
 8. [Comparative Analysis Matrix: Lua Pattern Matching vs Full POSIX / PCRE Regex](#8-comparative-analysis-matrix-lua-pattern-matching-vs-full-posix--pcre-regex)
 9. [Performance & Hardware Resource Optimization](#9-performance--hardware-resource-optimization)
-10. [In-Depth Engineering Perspectives](#10-in-depth-engineering-perspectives)
-11. [Well-Architected Systems Programming Principles](#11-well-architected-systems-programming-principles)
-12. [Step-by-Step Production Lab: Hardened URI Router & Query Parameter Parser](#12-step-by-step-production-lab-hardened-uri-router--query-parameter-parser)
-13. [Pure CLI / Command Interface](#13-pure-cli--command-interface)
-14. [Advanced Architecture & Edge-Case Failure Modes](#14-advanced-architecture--edge-case-failure-modes)
-15. [Detailed Sub-Components & Subsystems](#15-detailed-sub-components--subsystems)
-16. [References (The 5+5 Rule)](#16-references-the-55-rule)
-17. [Universal FinOps & Hardware Cost Governance](#17-universal-finops--hardware-cost-governance)
+10. [Step-by-Step Production Lab: Hardened URI Router & Query Parameter Parser](#10-step-by-step-production-lab-hardened-uri-router--query-parameter-parser)
+11. [Pure CLI / Command Interface](#11-pure-cli--command-interface)
+12. [Advanced Architecture & Edge-Case Failure Modes](#12-advanced-architecture--edge-case-failure-modes)
+13. [Detailed Sub-Components & Subsystems](#13-detailed-sub-components--subsystems)
+14. [References (The 5+5 Rule)](#14-references-the-55-rule)
+15. [Universal FinOps & Hardware Cost Governance](#15-universal-finops--hardware-cost-governance)
 
 ---
 
@@ -34,9 +33,9 @@ In Lua, **Strings** are immutable, 8-bit clean byte sequences that can store arb
 
 Because identical strings point to the same physical memory header, checking string equality (`if str_a == str_b`) executes as a single-cycle **$O(1)$ pointer comparison**, completely bypassing character-by-character memory scans.
 
-Furthermore, Lua replaces heavy, bloated regular expression engines (PCRE/Oniguruma) with a pristine **Pattern Matching Engine** implemented in fewer than 600 lines of C code, providing high-speed text tokenization, non-greedy matching (`-`), balanced delimiters (`%b()`), frontier boundary detection (`%f[]`), and international Unicode processing via the native **`utf8` Library**.
+Furthermore, Lua replaces heavy, bloated regular expression engines (PCRE/Oniguruma) with a pristine **Pattern Matching Engine** implemented in fewer than 600 lines of C code, providing high-speed text tokenization, non-greedy matching (`-`), balanced delimiters (`%b()`), frontier boundary detection (`%f[]`), and international Unicode processing via the native **utf8 Library**.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               LUA STRING INTERNING & GLOBAL HASH TABLE ARCHITECTURE            │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -54,6 +53,7 @@ Furthermore, Lua replaces heavy, bloated regular expression engines (PCRE/Onigur
 ```
 
 ### 👔 Executive Summary (For Managers & Non-Technical Stakeholders)
+
 * **Business Purpose**: Enables high-speed text processing, international language validation, and URL routing for global web gateways and real-time APIs.
 * **How It Works**: Automatically deduplicates identical text strings inside server memory, allowing identical words (like HTTP methods or customer status codes) to be compared in a single processor cycle.
 * **Key Business Value & ROI**: Slashes web gateway memory footprints by up to 50%, processes millions of URL routing operations per second, and prevents garbage collection latency spikes.
@@ -64,7 +64,7 @@ Furthermore, Lua replaces heavy, bloated regular expression engines (PCRE/Onigur
 
 Starting in Lua 5.2 and refined in Lua 5.4, strings are partitioned into two architectural tiers:
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     SHORT STRINGS VS LONG STRINGS IN LUA                       │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -89,7 +89,7 @@ Starting in Lua 5.2 and refined in Lua 5.4, strings are partitioned into two arc
 
 Lua strings are **8-bit clean**: they store arbitrary binary sequences with zero termination restrictions.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     CORE STRING LIBRARY FUNCTIONS (<string>)                   │
 ├───────────────────┬────────────────────────────────────────────────────────────┤
@@ -115,7 +115,7 @@ Lua strings are **8-bit clean**: they store arbitrary binary sequences with zero
 
 Lua avoids regular expressions in favor of an ultra-compact Pattern Matching engine using `%` as the escape character:
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     LUA PATTERN CHARACTER CLASSES MATRIX                       │
 ├───────────────────┬───────────────────┬────────────────────────────────────────┤
@@ -138,6 +138,7 @@ Lua avoids regular expressions in favor of an ultra-compact Pattern Matching eng
 ```
 
 ### 4.1 Repetition Modifiers
+
 * `+`: 1 or more repetitions (Greedy).
 * `*`: 0 or more repetitions (Greedy).
 * `-`: 0 or more repetitions (**Non-Greedy / Lazy**).
@@ -148,9 +149,11 @@ Lua avoids regular expressions in favor of an ultra-compact Pattern Matching eng
 ## 5. Advanced Patterns: Non-Greedy Repetition, Balanced Matches & Frontier Patterns
 
 ### 5.1 Balanced String Matching (`%bxy`)
+
 Matches balanced delimiters starting with character `x` and ending with `y` (e.g. `%b()` matches balanced nested parentheses `(a + (b * c))` cleanly!).
 
 ### 5.2 Frontier Patterns (`%f[set]`)
+
 Matches a **zero-width boundary** where the transition from a character outside `set` to a character inside `set` occurs (perfect for whole-word matching):
 
 ```lua
@@ -163,11 +166,11 @@ end
 
 ---
 
-## 6. UTF-8 Architecture & Codepoint Iteration (<utf8> Library)
+## 6. UTF-8 Architecture & Codepoint Iteration (utf8 Library)
 
 Because standard Lua string indexing (`#s`, `string.sub`) operates strictly on **byte counts**, multibyte UTF-8 characters (like emojis or accented letters) take 2 to 4 bytes per glyph!
 
-Lua 5.3+ provides the **`utf8` library** to navigate Unicode text:
+Lua 5.3+ provides the **utf8 library** to navigate Unicode text:
 
 ```lua
 local text = "Hello 🌍 World"
@@ -195,9 +198,9 @@ end
 
 | Feature | Lua Native Patterns | POSIX Extended Regex | PCRE / PCRE JIT (OpenResty) |
 | :--- | :--- | :--- | :--- |
-| **Engine Footprint** | **< 600 Lines of C (< 15KB)**| ~150 KB | ~2 MB |
-| **Backtracking Overhead**| **Deterministic Linear DFA** | Can exhibit ReDoS | Fast with JIT compilation |
-| **Lookahead / Lookbehind**| No | No | **Yes** |
+| **Engine Footprint** | **< 600 Lines of C (< 15KB)** | ~150 KB | ~2 MB |
+| **Backtracking Overhead** | **Deterministic Linear DFA** | Can exhibit ReDoS | Fast with JIT compilation |
+| **Lookahead / Lookbehind** | No | No | **Yes** |
 | **Balanced Matching** | **Yes (`%b()`)** | No | Yes (Recursive) |
 | **Memory Allocation** | **Zero Heap Mallocs** | Requires state buffers | Requires state buffers |
 
@@ -205,7 +208,7 @@ end
 
 ## 9. Performance & Hardware Resource Optimization
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                         STRING TUNING PLAYBOOK                                 │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -221,8 +224,9 @@ end
 
 ## 10. Step-by-Step Production Lab: Hardened URI Router & Query Parameter Parser
 
-### File Structure:
-- [`src/uri_router.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/uri_router.lua)
+### File Structure
+
+* [`src/uri_router.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/uri_router.lua)
 
 ### Step 1: Implement High-Speed Zero-Allocation URI Query & Path Router
 
@@ -325,19 +329,25 @@ print(string.format("Dispatch 2: Success=%s | Response: %s", tostring(ok2), resp
 ## 11. Pure CLI / Command Interface
 
 ### 1. Execute URI Router Script
+
 Run router test suite:
+
 ```bash
 lua src/uri_router.lua
 ```
 
 ### 2. Verify UTF-8 Codepoints in Terminal
+
 Inspect Unicode codepoint values:
+
 ```bash
 lua -e 'for p, c in utf8.codes("🚀 Enterprise Cloud") do print(string.format("0x%04X", c)) end'
 ```
 
 ### 3. Test Binary Packing and Unpacking (<string.pack>)
+
 Serialize structured binary records:
+
 ```bash
 lua -e 'local packed = string.pack(">I2I4", 0xCAFE, 50000); print(string.format("Packed bytes: %d", #packed))'
 ```
@@ -346,7 +356,7 @@ lua -e 'local packed = string.pack(">I2I4", 0xCAFE, 50000); print(string.format(
 
 ## 12. Advanced Architecture & Edge-Case Failure Modes
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     STRING FAILURE RECOVERY MATRIX                             │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -371,29 +381,37 @@ lua -e 'local packed = string.pack(">I2I4", 0xCAFE, 50000); print(string.format(
 ## 13. Detailed Sub-Components & Subsystems
 
 ### 1. Lua Short-String Global Intern Table (`stringtable`)
+
 * **Key Concepts**: Resizable global hash table maintaining unique string objects, using SipHash/MurmurHash for hash security.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'print(collectgarbage("count"))'
 ```
 
 ### 2. Lua Pattern Matching State Machine (`lstrlib.c`)
+
 * **Key Concepts**: Recursive descent pattern parser compiling captures onto the C execution stack with zero heap memory allocation.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'print(string.match("user_1024", "(%a+)_(%d+)"))'
 ```
 
 ### 3. Binary Packing Serializer Subsystem (`string.pack`)
+
 * **Key Concepts**: Packs integers, floating-point numbers, and strings into native or network big-endian binary byte streams.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'print(#string.pack("<f", 1.0))'
 ```
 
 ### 4. ISO Unicode Codepoint Validator (`utf8.len`)
+
 * **Key Concepts**: Validates byte sequences against RFC 3629 UTF-8 encoding rules, returning `nil` and byte position on invalid sequences.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'print(utf8.len("test\xFF\xFF"))'
 ```
@@ -403,6 +421,7 @@ lua -e 'print(utf8.len("test\xFF\xFF"))'
 ## 14. References (The 5+5 Rule)
 
 ### Official Documentation & Academic Specifications
+
 1. [Lua 5.4 Reference Manual: Section 6.4 String Manipulation](https://www.lua.org/manual/5.4/manual.html#6.4)
 2. [Lua 5.4 Reference Manual: Section 6.5 UTF-8 Support](https://www.lua.org/manual/5.4/manual.html#6.5)
 3. [Roberto Ierusalimschy: A Text Pattern-Matching Tool based on Parsing Expression Grammars (LPeg)](https://www.inf.puc-rio.br/~roberto/docs/peg.pdf)
@@ -410,17 +429,18 @@ lua -e 'print(utf8.len("test\xFF\xFF"))'
 5. [SEI CERT: String Management and Encoding Invariants](https://wiki.sei.cmu.edu/)
 
 ### Authoritative Engineering Textbooks & Systems Deep Dives
-6. [Roberto Ierusalimschy: Programming in Lua (Chapter 4: Strings, Chapter 10: Pattern Matching)](https://www.lua.org/pil/4.html)
-7. [Eli Bendersky: Lua Pattern Matching in Practice and Internals](https://eli.thegreenplace.net/)
-8. [Cloudflare Engineering: Sub-Millisecond String Parsing in Edge Workers](https://blog.cloudflare.com/)
-9. [OpenResty Guide: Avoiding String GC Thrashing in NGINX Lua Modules](https://openresty.org/)
-10. [High-Performance Linux Systems: Parsing HTTP Headers in Native Embeddable Runtimes](https://www.kernel.org/)
+
+1. [Roberto Ierusalimschy: Programming in Lua (Chapter 4: Strings, Chapter 10: Pattern Matching)](https://www.lua.org/pil/4.html)
+2. [Eli Bendersky: Lua Pattern Matching in Practice and Internals](https://eli.thegreenplace.net/)
+3. [Cloudflare Engineering: Sub-Millisecond String Parsing in Edge Workers](https://blog.cloudflare.com/)
+4. [OpenResty Guide: Avoiding String GC Thrashing in NGINX Lua Modules](https://openresty.org/)
+5. [High-Performance Linux Systems: Parsing HTTP Headers in Native Embeddable Runtimes](https://www.kernel.org/)
 
 ---
 
 ## 15. Universal FinOps & Hardware Cost Governance
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                         STRING FINOPS SAVINGS MATRIX                           │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -441,12 +461,15 @@ lua -e 'print(utf8.len("test\xFF\xFF"))'
 ```
 
 ### 1. `table.concat` vs String Concatenation (`..`) Economics
+
 In an API reverse proxy assembling 20KB HTTP responses across 100,000,000 requests daily:
-- **String Concatenation Loop (`s = s .. chunk`)**: Generates 50 intermediate temporary string allocations per request ($5\text{ Billion temporary garbage-collected objects daily}$), causing the Lua Garbage Collector to consume 45% of total server CPU time ($14\text{ cloud servers required} \times \$480/\text{month} = \mathbf{\$6,720/\text{month}}$).
-- **`table.concat()` Buffer Pattern**: Allocates exactly 1 single string at the end of the request, eliminating 98% of Garbage Collector load.
-- Required server fleet drops from 14 to **3 cloud servers** ($3 \times \$480 = \mathbf{\$1,440/\text{month}}$).
-- **FinOps ROI**: Delivers **\$5,280/month (\$63,360/year) in direct compute infrastructure savings**.
+
+* **String Concatenation Loop (`s = s .. chunk`)**: Generates 50 intermediate temporary string allocations per request ($5\text{ Billion temporary garbage-collected objects daily}$), causing the Lua Garbage Collector to consume 45% of total server CPU time ($14\text{ cloud servers required} \times \$480/\text{month} = \mathbf{\$6,720/\text{month}}$).
+* **`table.concat()` Buffer Pattern**: Allocates exactly 1 single string at the end of the request, eliminating 98% of Garbage Collector load.
+* Required server fleet drops from 14 to **3 cloud servers** ($3 \times \$480 = \mathbf{\$1,440/\text{month}}$).
+* **FinOps ROI**: Delivers **\$5,280/month (\$63,360/year) in direct compute infrastructure savings**.
 
 ### 2. Binary Serialization vs JSON Wire Transfer
-- Packing binary telemetry frames with `string.pack(">I2I4f")` reduces payload size from 220 bytes (JSON) to **10 bytes (Binary)**.
-- **FinOps ROI**: Slashes inter-region cloud egress bandwidth fees by **95%**, saving tens of thousands of dollars on high-volume IoT telemetry pipelines.
+
+* Packing binary telemetry frames with `string.pack(">I2I4f")` reduces payload size from 220 bytes (JSON) to **10 bytes (Binary)**.
+* **FinOps ROI**: Slashes inter-region cloud egress bandwidth fees by **95%**, saving tens of thousands of dollars on high-volume IoT telemetry pipelines.

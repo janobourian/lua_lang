@@ -1,13 +1,14 @@
 # Module 08: Object-Oriented Programming, Prototype Inheritance & Privacy Patterns
 
-**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem  
-**Category:** Prototype Inheritance, Single/Multiple Inheritance, Polymorphism & Information Hiding  
-**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`  
+**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem
+**Category:** Prototype Inheritance, Single/Multiple Inheritance, Polymorphism & Information Hiding
+**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`
 **Status:** ✅ Completed
 
 ---
 
 ## 📑 Table of Contents
+
 1. [High-Level Overview & Executive Summary](#1-high-level-overview--executive-summary)
 2. [The Prototype OOP Paradigm & Colon Syntax Sugar (obj:method)](#2-the-prototype-oop-paradigm--colon-syntax-sugar-objmethod)
 3. [Single Inheritance & Metatable Delegation Chains](#3-single-inheritance--metatable-delegation-chains)
@@ -17,14 +18,12 @@
 7. [Certification & Engineering Essentials (Lua / OpenResty Cheat Sheet)](#7-certification--engineering-essentials-lua--openresty-cheat-sheet)
 8. [Comparative Analysis Matrix: Prototype OOP vs Class-Based OOP](#8-comparative-analysis-matrix-prototype-oop-vs-class-based-oop)
 9. [Performance & Hardware Resource Optimization](#9-performance--hardware-resource-optimization)
-10. [In-Depth Engineering Perspectives](#10-in-depth-engineering-perspectives)
-11. [Well-Architected Systems Programming Principles](#11-well-architected-systems-programming-principles)
-12. [Step-by-Step Production Lab: Hierarchical Enterprise Banking System](#12-step-by-step-production-lab-hierarchical-enterprise-banking-system)
-13. [Pure CLI / Command Interface](#13-pure-cli--command-interface)
-14. [Advanced Architecture & Edge-Case Failure Modes](#14-advanced-architecture--edge-case-failure-modes)
-15. [Detailed Sub-Components & Subsystems](#15-detailed-sub-components--subsystems)
-16. [References (The 5+5 Rule)](#16-references-the-55-rule)
-17. [Universal FinOps & Hardware Cost Governance](#17-universal-finops--hardware-cost-governance)
+10. [Step-by-Step Production Lab: Hierarchical Enterprise Banking System](#10-step-by-step-production-lab-hierarchical-enterprise-banking-system)
+11. [Pure CLI / Command Interface](#11-pure-cli--command-interface)
+12. [Advanced Architecture & Edge-Case Failure Modes](#12-advanced-architecture--edge-case-failure-modes)
+13. [Detailed Sub-Components & Subsystems](#13-detailed-sub-components--subsystems)
+14. [References (The 5+5 Rule)](#14-references-the-55-rule)
+15. [Universal FinOps & Hardware Cost Governance](#15-universal-finops--hardware-cost-governance)
 
 ---
 
@@ -33,6 +32,7 @@
 While Lua does not feature a hardcoded `class` keyword like Java or C++, it provides something far more flexible and powerful: **Prototype-Based Object-Oriented Programming (Prototype OOP)**. By unifying tables, first-class functions, and metatable delegation (`__index`), Lua can model any object-oriented paradigm—**Single Inheritance**, **Multiple Inheritance**, **Polymorphism**, and **Information Hiding**—with zero virtual machine overhead.
 
 In Lua prototype systems:
+
 1. An **Object** is a standard table containing instance state attributes.
 2. A **Class Prototype** is a table containing shared method functions.
 3. **Instantiation** attaches the class prototype to the instance table via `setmetatable(instance, { __index = Class })`.
@@ -40,7 +40,7 @@ In Lua prototype systems:
 
 Mastering enterprise Lua OOP enables developers to construct high-speed domain models, financial ledger classes, and network driver interfaces that compile cleanly under the **LuaJIT Trace Compiler** with **zero virtual dispatch penalty**.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               LUA PROTOTYPE INHERITANCE DELEGATION ARCHITECTURE                │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -67,6 +67,7 @@ Mastering enterprise Lua OOP enables developers to construct high-speed domain m
 ```
 
 ### 👔 Executive Summary (For Managers & Non-Technical Stakeholders)
+
 * **Business Purpose**: Enables software engineering teams to model real-world business systems (financial accounts, customers, shipping orders) with clean hierarchy and reusable code.
 * **How It Works**: Uses shared blueprint tables (prototypes) that pass down capabilities from parent classes to child classes, allowing new business features to reuse existing code.
 * **Key Business Value & ROI**: Slashes enterprise codebase size by 50% through modular code reuse, speeds up developer onboarding, and eliminates application memory bloat.
@@ -97,6 +98,7 @@ acc:deposit(100) -- Passes `acc` as first parameter `self`
 ## 3. Single Inheritance & Metatable Delegation Chains
 
 To create a subclass that inherits all methods from a parent class:
+
 1. Set the subclass's metatable to point its `__index` to the parent class.
 2. Set the subclass's own `__index` to itself so instances can find subclass methods.
 
@@ -170,7 +172,9 @@ end
 ## 5. Information Hiding: Closure-Based Privacy vs Dual Representation
 
 ### 5.1 Closure-Based Privacy (Hard Encapsulation)
+
 State is kept entirely inside local variables captured by upvalues. The returned object contains only closure methods:
+
 ```lua
 local function new_secure_account(initial_balance)
     local balance = initial_balance -- Private state! Unreachable from outside!
@@ -183,7 +187,9 @@ end
 ```
 
 ### 5.2 Dual Representation Pattern (Weak Tables)
+
 Private data is stored in a private module-level table indexed by the object instance itself, with `__mode = "k"` to prevent memory leaks:
+
 ```lua
 local private_data = setmetatable({}, { __mode = "k" }) -- Weak keys!
 
@@ -230,17 +236,17 @@ end
 
 | Feature | Lua Prototype OOP | Java / C++ Class OOP | JavaScript Prototype OOP |
 | :--- | :--- | :--- | :--- |
-| **Object Allocation** | Single Table Allocation| Memory Layout + VTable | Hidden Class Layout |
+| **Object Allocation** | Single Table Allocation | Memory Layout + VTable | Hidden Class Layout |
 | **Method Storage** | Shared Class Table | VTable in `.rodata` | `__proto__` Chain |
-| **Inheritance Model** | Metatable Delegation | Static Class Hierarchy| Prototype Chain |
-| **Multiple Inheritance**| Dynamic Search / Mixin | Interfaces Only / Multiple| Mixin Pattern Only |
-| **JIT Optimization** | **Trace Inlined (LuaJIT)**| VTable Devirtualization| Monomorphic Inline Cache|
+| **Inheritance Model** | Metatable Delegation | Static Class Hierarchy | Prototype Chain |
+| **Multiple Inheritance** | Dynamic Search / Mixin | Interfaces Only / Multiple | Mixin Pattern Only |
+| **JIT Optimization** | **Trace Inlined (LuaJIT)** | VTable Devirtualization | Monomorphic Inline Cache |
 
 ---
 
 ## 9. Performance & Hardware Resource Optimization
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                           OOP TUNING PLAYBOOK                                  │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -256,8 +262,9 @@ end
 
 ## 10. Step-by-Step Production Lab: Hierarchical Enterprise Banking System
 
-### File Structure:
-- [`src/banking_system.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/banking_system.lua)
+### File Structure
+
+* [`src/banking_system.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/banking_system.lua)
 
 ### Step 1: Implement Enterprise Hierarchical Class System
 
@@ -360,19 +367,25 @@ print("OOP Hierarchy and Polymorphism Verified Successfully!")
 ## 11. Pure CLI / Command Interface
 
 ### 1. Execute Banking OOP Suite
+
 Run object hierarchy engine:
+
 ```bash
 lua src/banking_system.lua
 ```
 
 ### 2. Disassemble OOP Method Calls in Lua Bytecode
+
 Verify `OP_SELF` bytecode instruction generation:
+
 ```bash
 luac -l -p src/banking_system.lua | grep -i "self" | head -n 20
 ```
 
 ### 3. Verify Polymorphic Overrides via CLI
+
 Inspect instance method resolution:
+
 ```bash
 lua -e 'package.path="./src/?.lua;" .. package.path; local b = require("banking_system")' 2>/dev/null || true
 ```
@@ -381,7 +394,7 @@ lua -e 'package.path="./src/?.lua;" .. package.path; local b = require("banking_
 
 ## 12. Advanced Architecture & Edge-Case Failure Modes
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        OOP FAILURE RECOVERY MATRIX                             │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -406,29 +419,37 @@ lua -e 'package.path="./src/?.lua;" .. package.path; local b = require("banking_
 ## 13. Detailed Sub-Components & Subsystems
 
 ### 1. Lua Virtual Machine Method Dispatcher (`OP_SELF`)
+
 * **Key Concepts**: Specialized bytecode instruction optimizing `obj:method()` by loading object pointer and method in a single VM cycle.
 * **CLI / Tool Snippet**:
+
 ```bash
 luac -l -p src/banking_system.lua | head -n 30
 ```
 
 ### 2. Prototype Delegation Metatable Bridge (`__index = Class`)
+
 * **Key Concepts**: Metatable fallback mechanism connecting instance memory lookups to shared prototype tables.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local C = { f = function() return "OK" end }; C.__index = C; local o = setmetatable({}, C); print(o:f())'
 ```
 
 ### 3. Dynamic Method Cacher Subsystem
+
 * **Key Concepts**: Caches parent methods directly on child class tables during multi-inheritance dispatches.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local A = { m = function() return 1 end }; local B = setmetatable({}, { __index = A }); print(B.m())'
 ```
 
 ### 4. Weak Key Dual Representation Table (`__mode = "k"`)
+
 * **Key Concepts**: Ephemeron table associating private state records with instance table addresses.
 * **CLI / Tool Snippet**:
+
 ```bash
 lua -e 'local priv = setmetatable({}, {__mode="k"}); do local o = {}; priv[o] = 123 end; collectgarbage(); print(next(priv))'
 ```
@@ -438,6 +459,7 @@ lua -e 'local priv = setmetatable({}, {__mode="k"}); do local o = {}; priv[o] = 
 ## 14. References (The 5+5 Rule)
 
 ### Official Documentation & Academic Specifications
+
 1. [Programming in Lua: Chapter 21 (Object-Oriented Programming)](https://www.lua.org/pil/21.html)
 2. [Programming in Lua: Chapter 21.2 (Multiple Inheritance)](https://www.lua.org/pil/21.2.html)
 3. [Programming in Lua: Chapter 21.3 (Privacy & Dual Representation)](https://www.lua.org/pil/21.3.html)
@@ -445,17 +467,18 @@ lua -e 'local priv = setmetatable({}, {__mode="k"}); do local o = {}; priv[o] = 
 5. [SEI CERT: Safe Encapsulation and Inheritance Invariants](https://wiki.sei.cmu.edu/)
 
 ### Authoritative Engineering Textbooks & Systems Deep Dives
-6. [Roberto Ierusalimschy: Programming in Lua (4th Edition, Part III: OOP)](https://www.lua.org/pil/)
-7. [Eli Bendersky: Object-Oriented Programming in Lua and Bytecode Internals](https://eli.thegreenplace.net/)
-8. [Cloudflare Engineering: High-Performance OOP in Edge Microservices](https://blog.cloudflare.com/)
-9. [OpenResty Guide: Class Construction and JIT Inlining in LuaJIT](https://openresty.org/)
-10. [High-Performance Linux Systems: Prototype vs Class Memory Architectures](https://www.kernel.org/)
+
+1. [Roberto Ierusalimschy: Programming in Lua (4th Edition, Part III: OOP)](https://www.lua.org/pil/)
+2. [Eli Bendersky: Object-Oriented Programming in Lua and Bytecode Internals](https://eli.thegreenplace.net/)
+3. [Cloudflare Engineering: High-Performance OOP in Edge Microservices](https://blog.cloudflare.com/)
+4. [OpenResty Guide: Class Construction and JIT Inlining in LuaJIT](https://openresty.org/)
+5. [High-Performance Linux Systems: Prototype vs Class Memory Architectures](https://www.kernel.org/)
 
 ---
 
 ## 15. Universal FinOps & Hardware Cost Governance
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                           OOP FINOPS SAVINGS MATRIX                            │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -476,11 +499,14 @@ lua -e 'local priv = setmetatable({}, {__mode="k"}); do local o = {}; priv[o] = 
 ```
 
 ### 1. Prototype OOP vs Closure OOP Memory Footprint Economics
+
 In an e-commerce order routing engine processing 200,000 active shopping carts simultaneously:
-- **Closure-Based OOP (`return { add_item = function() ... end }`)**: Allocates 5 distinct closure functions and upvalue objects per cart ($200,000 \times 5 = 1,000,000\text{ closure allocations} = \mathbf{120\text{ Megabytes RAM}}$).
-- **Prototype-Based OOP (`setmetatable(cart, CartPrototype)`)**: Allocates 1 flat table of attributes per cart ($200,000 \times 32\text{ Bytes} = \mathbf{6.4\text{ Megabytes RAM}}$).
-- **FinOps ROI**: Delivers a **95% reduction in heap memory footprint**, allowing the service to run on tiny \$10/month cloud containers.
+
+* **Closure-Based OOP (`return { add_item = function() ... end }`)**: Allocates 5 distinct closure functions and upvalue objects per cart ($200,000 \times 5 = 1,000,000\text{ closure allocations} = \mathbf{120\text{ Megabytes RAM}}$).
+* **Prototype-Based OOP (`setmetatable(cart, CartPrototype)`)**: Allocates 1 flat table of attributes per cart ($200,000 \times 32\text{ Bytes} = \mathbf{6.4\text{ Megabytes RAM}}$).
+* **FinOps ROI**: Delivers a **95% reduction in heap memory footprint**, allowing the service to run on tiny \$10/month cloud containers.
 
 ### 2. LuaJIT Method Inlining Compute Gains
-- Prototype method dispatches (`cart:calculate_tax()`) are recognized by the LuaJIT Trace Compiler as constant table lookups and inlined directly into native hardware CPU registers.
-- **FinOps ROI**: Replaces thousands of indirect function calls with zero-overhead inline machine instructions, increasing maximum transaction throughput per CPU core by **40%**.
+
+* Prototype method dispatches (`cart:calculate_tax()`) are recognized by the LuaJIT Trace Compiler as constant table lookups and inlined directly into native hardware CPU registers.
+* **FinOps ROI**: Replaces thousands of indirect function calls with zero-overhead inline machine instructions, increasing maximum transaction throughput per CPU core by **40%**.

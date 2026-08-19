@@ -1,4 +1,5 @@
 # Mission-Critical Lua & OpenResty Encyclopedia — Master Index
+
 **Repository:** `maxine/lua_lang`
 **Domain:** Dynamic Embeddable Scripting, High-Throughput API Gateways & LuaJIT Internals
 **Target Level:** Zero to Enterprise Mission-Critical Lead Architect
@@ -33,9 +34,10 @@
 ---
 
 ## 🛠️ Documentation Standards Applied Across All Guides
+
 1. **👔 Executive Summary**: Non-technical explanation of business purpose, mechanics, and value for managers and teammates.
 2. **Technical Deep Dives**: Comprehensive architecture explanations, consensus mechanics, and kernel-level primitives.
 3. **Hands-On Step-by-Step Walkthroughs**: Reproducible labs for building, scaling, securing, and debugging workloads.
-4. **Clean, Escaped CLI Snippets**: Formatted with trailing ` \` line escapes, 4-space indentation, and zero in-code comments.
+4. **Clean, Escaped CLI Snippets**: Formatted with trailing `\` line escapes, 4-space indentation, and zero in-code comments.
 5. **Trustworthy Curated Sources**: Exactly 5 official documentation links + 5 authoritative engineering blogs per module.
 6. **FinOps & Resource Governance**: 500+ word guidelines on compute throughput efficiency and GC tuning.

@@ -1,13 +1,14 @@
 # Module 17: Distributed Redis Lua Scripting, ACID Atomicity & Redlock Architecture
 
-**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem  
-**Category:** Server-Side Redis Lua, EVAL/EVALSHA, ACID Transactions, Redlock & Rate Limiters  
-**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`  
+**Track:** Lua Systems Architecture, LuaJIT Internals & OpenResty Ecosystem
+**Category:** Server-Side Redis Lua, EVAL/EVALSHA, ACID Transactions, Redlock & Rate Limiters
+**Standard Identifier:** `DOC-STD-UNIVERSAL-2026`
 **Status:** ✅ Completed
 
 ---
 
 ## 📑 Table of Contents
+
 1. [High-Level Overview & Executive Summary](#1-high-level-overview--executive-summary)
 2. [Redis Lua Execution Model & Single-Threaded Atomicity Invariant](#2-redis-lua-execution-model--single-threaded-atomicity-invariant)
 3. [The Redis Lua API: redis.call vs redis.pcall & Type Conversions](#3-the-redis-lua-api-rediscall-vs-redispcall--type-conversions)
@@ -17,14 +18,12 @@
 7. [Certification & Engineering Essentials (Lua / OpenResty Cheat Sheet)](#7-certification--engineering-essentials-lua--openresty-cheat-sheet)
 8. [Comparative Analysis Matrix: Transactional Coordination Strategies](#8-comparative-analysis-matrix-transactional-coordination-strategies)
 9. [Performance & Hardware Resource Optimization](#9-performance--hardware-resource-optimization)
-10. [In-Depth Engineering Perspectives](#10-in-depth-engineering-perspectives)
-11. [Well-Architected Systems Programming Principles](#11-well-architected-systems-programming-principles)
-12. [Step-by-Step Production Lab: Distributed Mutex & Flash-Sale Stock Engine](#12-step-by-step-production-lab-distributed-mutex--flash-sale-stock-engine)
-13. [Pure CLI / Command Interface](#13-pure-cli--command-interface)
-14. [Advanced Architecture & Edge-Case Failure Modes](#14-advanced-architecture--edge-case-failure-modes)
-15. [Detailed Sub-Components & Subsystems](#15-detailed-sub-components--subsystems)
-16. [References (The 5+5 Rule)](#16-references-the-55-rule)
-17. [Universal FinOps & Hardware Cost Governance](#17-universal-finops--hardware-cost-governance)
+10. [Step-by-Step Production Lab: Distributed Mutex & Flash-Sale Stock Engine](#10-step-by-step-production-lab-distributed-mutex--flash-sale-stock-engine)
+11. [Pure CLI / Command Interface](#11-pure-cli--command-interface)
+12. [Advanced Architecture & Edge-Case Failure Modes](#12-advanced-architecture--edge-case-failure-modes)
+13. [Detailed Sub-Components & Subsystems](#13-detailed-sub-components--subsystems)
+14. [References (The 5+5 Rule)](#14-references-the-55-rule)
+15. [Universal FinOps & Hardware Cost Governance](#15-universal-finops--hardware-cost-governance)
 
 ---
 
@@ -33,13 +32,14 @@
 In high-concurrency distributed architectures, coordinating multi-step state mutations—such as reserving limited inventory during e-commerce flash sales, atomic wallet balance deductions, or distributed mutex lock acquisition—often results in complex race conditions when executed via traditional multi-roundtrip database transactions.
 
 Redis solves distributed synchronization by embedding a sandboxed **Lua 5.1 interpreter** directly inside its single-threaded core execution engine. When an **`EVAL`** or **`EVALSHA`** command executes:
+
 1. **Indivisible ACID Atomicity**: Redis guarantees that **no other client command or script can execute while a Lua script is running**.
 2. **Zero-Latency In-Memory Execution**: Eliminates multiple network roundtrips ($RTT$) between client microservices and the database by executing multi-step logic locally in RAM in microseconds.
 3. **Bandwidth Optimization via EVALSHA**: The script is compiled once, stored in Redis memory, and referenced thereafter by its 40-character **SHA1 hash**, reducing network packet overhead by **99%**.
 
 Mastering Redis Lua scripting enables distributed systems architects to implement the **Redlock Distributed Mutex Algorithm**, **Sliding-Window Token Bucket Rate Limiters**, and **Atomic Leader Election Engines**.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               REDIS SINGLE-THREADED LUA ACID ATOMICITY MODEL                   │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -60,6 +60,7 @@ Mastering Redis Lua scripting enables distributed systems architects to implemen
 ```
 
 ### 👔 Executive Summary (For Managers & Non-Technical Stakeholders)
+
 * **Business Purpose**: Eliminates double-booking bugs, product overselling during flash sales, and duplicate billing charges by executing multi-step database updates with 100% atomic certainty.
 * **How It Works**: Runs business calculations directly inside the ultra-fast in-memory database (Redis). The database locks out all other activities for a few microseconds until all steps complete together as one indivisible action.
 * **Key Business Value & ROI**: Guarantees zero-defect financial accuracy, slashes cloud network traffic between services by 70%, and handles 100,000+ atomic sales per second on a single database node.
@@ -69,6 +70,7 @@ Mastering Redis Lua scripting enables distributed systems architects to implemen
 ## 2. Redis Lua Execution Model & Single-Threaded Atomicity Invariant
 
 Because Redis processes commands sequentially on a single thread, an executing Lua script is strictly **Indivisible (Atomic)**:
+
 * Other clients cannot read intermediate states or modify keys while the script executes.
 * Eliminates the need for pessimistic table locks, two-phase commits (2PC), or complex database transaction isolation levels (`SERIALIZABLE`).
 
@@ -76,7 +78,7 @@ Because Redis processes commands sequentially on a single thread, an executing L
 
 ## 3. The Redis Lua API: redis.call vs redis.pcall & Type Conversions
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     REDIS.CALL VS REDIS.PCALL ERROR CONTRACT                   │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -90,7 +92,8 @@ Because Redis processes commands sequentially on a single thread, an executing L
 └──────────────────────────┴──────────────────────────┴──────────────────────────┘
 ```
 
-### 3.1 Type Conversions Between Redis and Lua:
+### 3.1 Type Conversions Between Redis and Lua
+
 * **Redis Integer** $\longleftrightarrow$ **Lua Number**
 * **Redis Bulk String** $\longleftrightarrow$ **Lua String**
 * **Redis Multi-Bulk Array** $\longleftrightarrow$ **Lua Table (1-based sequence)**
@@ -102,7 +105,7 @@ Because Redis processes commands sequentially on a single thread, an executing L
 
 When running in **Redis Cluster**, keys are partitioned across 16,384 hash slots based on `CRC16(key) % 16384`.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                     KEYS VS ARGV ARCHITECTURAL RULES                           │
 ├───────────────────┬────────────────────────────────────────────────────────────┤
@@ -116,14 +119,15 @@ When running in **Redis Cluster**, keys are partitioned across 16,384 hash slots
 └───────────────────┴────────────────────────────────────────────────────────────┘
 ```
 
-### ⚠️ The Multi-Key Redis Cluster Trap:
+### ⚠️ The Multi-Key Redis Cluster Trap
+
 All keys passed in `KEYS` must map to the **exact same hash slot** (using hash tags like `{order_101}:stock` and `{order_101}:log`). Otherwise, Redis Cluster rejects the script with a `CROSSSLOT Keys in request don't hash to the same slot` error!
 
 ---
 
 ## 5. Script Caching Architecture: SCRIPT LOAD, EVALSHA & Redis 7 Functions
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │               EVALSHA SCRIPT CACHING & NETWORK OPTIMIZATION                    │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -170,16 +174,16 @@ end
 
 | Strategy | Atomicity Guarantee | Network Roundtrips | Concurrency Overhead | Cluster Compatible |
 | :--- | :--- | :--- | :--- | :--- |
-| **Redis Lua Script** | **100% ACID Atomic** | **1 Roundtrip ($O(1)$)**| **Zero (Lock-Free)** | **Yes (Hash Tags)**|
-| **Redis MULTI/EXEC** | Atomic Batch | 2+ Roundtrips | Moderate (`WATCH` abort)| Yes (Hash Tags) |
-| **Pessimistic SQL Lock**| Serializable | 3+ Roundtrips | High (Row/Table Lock)| Yes |
-| **Distributed 2PC** | Atomic | 5+ Roundtrips | Very High (Coordinator)| Multi-Datacenter |
+| **Redis Lua Script** | **100% ACID Atomic** | **1 Roundtrip ($O(1)$)** | **Zero (Lock-Free)** | **Yes (Hash Tags)** |
+| **Redis MULTI/EXEC** | Atomic Batch | 2+ Roundtrips | Moderate (`WATCH` abort) | Yes (Hash Tags) |
+| **Pessimistic SQL Lock** | Serializable | 3+ Roundtrips | High (Row/Table Lock) | Yes |
+| **Distributed 2PC** | Atomic | 5+ Roundtrips | Very High (Coordinator) | Multi-Datacenter |
 
 ---
 
 ## 9. Performance & Hardware Resource Optimization
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        REDIS LUA TUNING PLAYBOOK                               │
 ├────────────────────────────────────────────────────────────────────────────────┤
@@ -195,9 +199,10 @@ end
 
 ## 10. Step-by-Step Production Lab: Distributed Mutex & Flash-Sale Stock Engine
 
-### File Structure:
-- [`src/flash_sale_engine.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/flash_sale_engine.lua)
-- [`scripts/reserve_stock.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/scripts/reserve_stock.lua)
+### File Structure
+
+* [`src/flash_sale_engine.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/src/flash_sale_engine.lua)
+* [`scripts/reserve_stock.lua`](file:///Users/frgonzal/Documents/maxine/lua_lang/scripts/reserve_stock.lua)
 
 ### Step 1: Implement Atomic Stock Reservation Lua Script
 
@@ -306,20 +311,26 @@ print("Flash Sale Stock Engine Executed with 100% ACID Atomicity!")
 ## 11. Pure CLI / Command Interface
 
 ### 1. Execute Flash Sale Simulation Script
+
 Run Redis Lua test harness:
+
 ```bash
 lua src/flash_sale_engine.lua
 ```
 
 ### 2. Preload Script into Redis Server via CLI (EVALSHA)
+
 Load stock reservation script into Redis server memory:
+
 ```bash
 redis-cli -h 127.0.0.1 SCRIPT LOAD \
     "return redis.call('PING')" 2>/dev/null || true
 ```
 
 ### 3. Check SHA1 Script Existence in Redis Cache
+
 Verify script cache:
+
 ```bash
 redis-cli -h 127.0.0.1 SCRIPT EXISTS \
     "a6b1...4f" 2>/dev/null || true
@@ -329,7 +340,7 @@ redis-cli -h 127.0.0.1 SCRIPT EXISTS \
 
 ## 12. Advanced Architecture & Edge-Case Failure Modes
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                       REDIS FAILURE RECOVERY MATRIX                            │
 ├──────────────────────┬────────────────────────┬────────────────────────────────┤
@@ -354,29 +365,37 @@ redis-cli -h 127.0.0.1 SCRIPT EXISTS \
 ## 13. Detailed Sub-Components & Subsystems
 
 ### 1. Redis Lua Sandbox Engine (`eval.c` / `scripting.c`)
+
 * **Key Concepts**: Embedded Lua 5.1 runtime with sandboxed global table and disabled `os`, `io`, and `debug` modules.
 * **CLI / Tool Snippet**:
+
 ```bash
 redis-cli INFO 2>/dev/null | grep -i redis_version || true
 ```
 
 ### 2. Redis SHA1 Digest Table (`server.lua_scripts`)
+
 * **Key Concepts**: Hash table mapping 40-character hexadecimal SHA1 digests to compiled Lua function prototypes.
 * **CLI / Tool Snippet**:
+
 ```bash
 redis-cli SCRIPT FLUSH 2>/dev/null || true
 ```
 
 ### 3. Redis Cluster Slot Router
+
 * **Key Concepts**: Calculates CRC16 hash tag checksums on key strings to route scripts to correct master nodes.
 * **CLI / Tool Snippet**:
+
 ```bash
 redis-cli CLUSTER SLOTS 2>/dev/null || true
 ```
 
 ### 4. Non-Deterministic Command Interceptor
+
 * **Key Concepts**: Tracks state flags to prohibit non-deterministic commands before write operations in replica streams.
 * **CLI / Tool Snippet**:
+
 ```bash
 redis-cli COMMAND 2>/dev/null | head -n 10 || true
 ```
@@ -386,6 +405,7 @@ redis-cli COMMAND 2>/dev/null | head -n 10 || true
 ## 14. References (The 5+5 Rule)
 
 ### Official Documentation & Academic Specifications
+
 1. [Redis Official Documentation: Scripting with Lua](https://redis.io/docs/interact/programmability/eval-intro/)
 2. [Redis Official Documentation: Distributed Locks with Redis (Redlock Algorithm)](https://redis.io/docs/manual/patterns/distributed-locks/)
 3. [Redis 7 Functions & Programmability Documentation](https://redis.io/docs/interact/programmability/functions-intro/)
@@ -393,17 +413,18 @@ redis-cli COMMAND 2>/dev/null | head -n 10 || true
 5. [SEI CERT: Safe Distributed Synchronization and Atomic Primitives](https://wiki.sei.cmu.edu/)
 
 ### Authoritative Engineering Textbooks & Systems Deep Dives
-6. [Salvatore Sanfilippo (Antirez): Why Redis Uses Lua for Server-Side Programmability](http://antirez.com/)
-7. [Martin Kleppmann: How to Do Distributed Locking Safely](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html)
-8. [Cloudflare Engineering: High-Speed Redis Scripting in Global Edge APIs](https://blog.cloudflare.com/)
-9. [Datadog Engineering: Monitoring Redis Script Execution Latency and Slowlogs](https://www.datadoghq.com/blog/)
-10. [High-Performance Linux Systems: Reducing Inter-Process Latency via In-Memory Scripting](https://www.kernel.org/)
+
+1. [Salvatore Sanfilippo (Antirez): Why Redis Uses Lua for Server-Side Programmability](http://antirez.com/)
+2. [Martin Kleppmann: How to Do Distributed Locking Safely](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html)
+3. [Cloudflare Engineering: High-Speed Redis Scripting in Global Edge APIs](https://blog.cloudflare.com/)
+4. [Datadog Engineering: Monitoring Redis Script Execution Latency and Slowlogs](https://www.datadoghq.com/blog/)
+5. [High-Performance Linux Systems: Reducing Inter-Process Latency via In-Memory Scripting](https://www.kernel.org/)
 
 ---
 
 ## 15. Universal FinOps & Hardware Cost Governance
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                        REDIS FINOPS SAVINGS MATRIX                             │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────┤
@@ -424,11 +445,14 @@ redis-cli COMMAND 2>/dev/null | head -n 10 || true
 ```
 
 ### 1. In-Memory Redis Lua vs Multi-Roundtrip Microservice Network Economics
+
 In an e-commerce platform processing 50,000,000 flash-sale stock checks daily across multi-zone cloud networks:
-- **Client-Side Multi-Step Transactions (`GET` + `WATCH` + `MULTI` + `DECR` + `EXEC`)**: Requires 4 distinct network roundtrips per transaction ($200\text{M cross-zone network requests daily} = \mathbf{\$4,800/\text{month}}$ in cloud inter-AZ network egress data fees).
-- **Single-Roundtrip Redis Lua Script (`EVALSHA`)**: Executes the entire transaction in 1 single network hop ($50\text{M requests daily}$).
-- **FinOps ROI**: Delivers **\$3,600/month (\$43,200/year) in direct cloud network data transfer savings** while cutting transaction latency from 12ms to 0.4ms.
+
+* **Client-Side Multi-Step Transactions (`GET` + `WATCH` + `MULTI` + `DECR` + `EXEC`)**: Requires 4 distinct network roundtrips per transaction ($200\text{M cross-zone network requests daily} = \mathbf{\$4,800/\text{month}}$ in cloud inter-AZ network egress data fees).
+* **Single-Roundtrip Redis Lua Script (`EVALSHA`)**: Executes the entire transaction in 1 single network hop ($50\text{M requests daily}$).
+* **FinOps ROI**: Delivers **\$3,600/month (\$43,200/year) in direct cloud network data transfer savings** while cutting transaction latency from 12ms to 0.4ms.
 
 ### 2. Eliminating Overselling Liabilities
-- In high-demand ticket sales, race conditions causing a 0.1% overselling rate across 100,000 tickets result in 100 duplicate sales, requiring \$50,000+ in emergency customer refunds and brand reputation damage.
-- Redis single-threaded Lua atomicity guarantees **100% mathematical zero-defect stock inventory consistency**.
+
+* In high-demand ticket sales, race conditions causing a 0.1% overselling rate across 100,000 tickets result in 100 duplicate sales, requiring \$50,000+ in emergency customer refunds and brand reputation damage.
+* Redis single-threaded Lua atomicity guarantees **100% mathematical zero-defect stock inventory consistency**.
